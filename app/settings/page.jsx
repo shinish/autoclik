@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User } from 'lucide-react';
 import Button from '@/components/Button';
 
 export default function SettingsPage() {

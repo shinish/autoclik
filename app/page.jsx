@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [pinnedAutomations, setPinnedAutomations] = useState([]);
   const [activityScrollPosition, setActivityScrollPosition] = useState(0);
   const [showActivityNav, setShowActivityNav] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     // Check if user is admin from localStorage
@@ -44,6 +45,7 @@ export default function Dashboard() {
       setRecentActivity(data.recentActivity);
       setNotifications(data.notifications);
       setPinnedAutomations(data.pinnedAutomations);
+      setShowWelcome(data.firstTimeSetup || false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -53,6 +55,23 @@ export default function Dashboard() {
 
   const dismissNotification = (notificationId) => {
     setNotifications(notifications.filter(n => n.id !== notificationId));
+  };
+
+  const dismissWelcome = async () => {
+    try {
+      // Update the first_time_setup setting to false
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'first_time_setup',
+          value: 'false',
+        }),
+      });
+      setShowWelcome(false);
+    } catch (error) {
+      console.error('Error dismissing welcome message:', error);
+    }
   };
 
   const scrollActivity = (direction) => {
@@ -109,6 +128,63 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Dashboard Overview</h1>
+
+      {/* Welcome Message for First Time Setup */}
+      {showWelcome && (
+        <div className="rounded-lg p-6" style={{ backgroundColor: '#EBF5FF', border: '1px solid #3B82F6' }}>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold mb-2" style={{ color: '#1E40AF' }}>
+                Welcome to the Automation Platform!
+              </h2>
+              <p className="text-sm mb-4" style={{ color: '#1E40AF' }}>
+                You're all set with your admin account. Get started by:
+              </p>
+              <ul className="space-y-2 text-sm" style={{ color: '#1E40AF' }}>
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  <span>Adding your first automation to the catalog</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  <span>Configuring AWX connection in Settings</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  <span>Creating additional user accounts</span>
+                </li>
+              </ul>
+              <div className="mt-4 flex gap-3">
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    dismissWelcome();
+                    router.push('/catalog/new');
+                  }}
+                >
+                  Add First Automation
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    dismissWelcome();
+                    router.push('/settings');
+                  }}
+                >
+                  Go to Settings
+                </Button>
+              </div>
+            </div>
+            <button
+              onClick={dismissWelcome}
+              className="ml-4 p-1 rounded hover:bg-blue-200 transition-colors"
+              aria-label="Dismiss welcome message"
+            >
+              <X className="h-5 w-5" style={{ color: '#1E40AF' }} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
