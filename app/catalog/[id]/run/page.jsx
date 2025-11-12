@@ -774,6 +774,24 @@ export default function RunAutomationPage() {
                     {result.message}
                   </p>
 
+                  {/* Show error details if execution failed */}
+                  {!result.success && result.data?.details && (
+                    <div
+                      className="mt-3 p-3 rounded-lg"
+                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+                        <div className="flex-1">
+                          <p className="text-xs font-medium mb-1" style={{ color: '#b91c1c' }}>Error Details:</p>
+                          <p className="text-xs font-mono" style={{ color: '#dc2626' }}>
+                            {result.data.details}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {result.data?.uniqueId && (
                     <div
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
