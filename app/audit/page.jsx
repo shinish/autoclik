@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Calendar, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, TrendingDown, Download, ChevronDown, ChevronUp, Activity, FileText, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Calendar, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, TrendingDown, Download, ChevronDown, ChevronUp, Activity, FileText, FileSpreadsheet, Search, Filter, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -37,6 +37,20 @@ export default function AuditPage() {
   const [namespaces, setNamespaces] = useState([]);
   const [allRuns, setAllRuns] = useState([]); // Store all runs for filtering
   const [automations, setAutomations] = useState([]); // Store automations for namespace mapping
+
+  // Detailed view with pagination and search
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    status: 'all',
+    namespace: 'all',
+    dateFrom: '',
+    dateTo: '',
+    executedBy: '',
+    automationName: ''
+  });
 
   const toggleStatus = (status) => {
     setVisibleStatuses(prev => ({
@@ -403,11 +417,95 @@ export default function AuditPage() {
     });
   };
 
-  // Use filtered data for charts
-  const filteredStatusStats = getFilteredStatusStats();
-  const filteredChartData = getFilteredChartData();
+  // Use filtered data for charts - memoized for performance
+  const filteredStatusStats = useMemo(() => getFilteredStatusStats(), [allRuns, statusDateFilter, statusNamespaceFilter, automations]);
+  const filteredChartData = useMemo(() => getFilteredChartData(), [chartData, allRuns, executionDateFilter, executionNamespaceFilter, automations]);
 
-  const pieSegments = getPieSegments(filteredStatusStats);
+  const pieSegments = useMemo(() => getPieSegments(filteredStatusStats), [filteredStatusStats]);
+
+  // Filter runs for detailed view
+  const getDetailedViewRuns = () => {
+    let filtered = [...allRuns];
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(run => {
+        const automation = automations.find(a => a.id === run.automationId);
+        return (
+          run.uniqueId?.toLowerCase().includes(query) ||
+          run.status?.toLowerCase().includes(query) ||
+          run.executedBy?.toLowerCase().includes(query) ||
+          run.awxJobId?.toString().includes(query) ||
+          automation?.name?.toLowerCase().includes(query) ||
+          automation?.namespace?.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // Apply advanced filters
+    if (advancedFilters.status !== 'all') {
+      filtered = filtered.filter(run => run.status === advancedFilters.status);
+    }
+
+    if (advancedFilters.namespace !== 'all') {
+      filtered = filtered.filter(run => {
+        const automation = automations.find(a => a.id === run.automationId);
+        return automation && automation.namespace === advancedFilters.namespace;
+      });
+    }
+
+    if (advancedFilters.dateFrom) {
+      const fromDate = new Date(advancedFilters.dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(run => new Date(run.startedAt) >= fromDate);
+    }
+
+    if (advancedFilters.dateTo) {
+      const toDate = new Date(advancedFilters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(run => new Date(run.startedAt) <= toDate);
+    }
+
+    if (advancedFilters.executedBy.trim()) {
+      const query = advancedFilters.executedBy.toLowerCase();
+      filtered = filtered.filter(run => run.executedBy?.toLowerCase().includes(query));
+    }
+
+    if (advancedFilters.automationName.trim()) {
+      const query = advancedFilters.automationName.toLowerCase();
+      filtered = filtered.filter(run => {
+        const automation = automations.find(a => a.id === run.automationId);
+        return automation && automation.name.toLowerCase().includes(query);
+      });
+    }
+
+    return filtered;
+  };
+
+  const filteredDetailedRuns = getDetailedViewRuns();
+  const totalPages = Math.ceil(filteredDetailedRuns.length / pageSize);
+  const paginatedRuns = filteredDetailedRuns.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, advancedFilters, pageSize]);
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setAdvancedFilters({
+      status: 'all',
+      namespace: 'all',
+      dateFrom: '',
+      dateTo: '',
+      executedBy: '',
+      automationName: ''
+    });
+  };
 
   return (
     <div className="space-y-4 pb-4">
@@ -1228,6 +1326,454 @@ export default function AuditPage() {
           </div>
         )}
         </div>
+      </div>
+
+      {/* Detailed Records View with Pagination and Search */}
+      <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <div>
+            <h2 className="text-lg font-light" style={{ color: 'var(--text)' }}>Detailed Execution Records</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+              {filteredDetailedRuns.length} records found
+            </p>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--muted)' }} />
+              <input
+                type="text"
+                placeholder="Search runs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg text-sm transition-all w-64"
+                style={{
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--text)'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Advanced Search Toggle */}
+            <button
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              style={{
+                backgroundColor: showAdvancedSearch ? '#4C12A1' : 'var(--bg)',
+                color: showAdvancedSearch ? 'white' : 'var(--text)',
+                border: `1px solid ${showAdvancedSearch ? '#4C12A1' : 'var(--border)'}`
+              }}
+            >
+              <Filter className="h-4 w-4" />
+              Advanced Filters
+              {Object.values(advancedFilters).some(v => v && v !== 'all') && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
+                  Active
+                </span>
+              )}
+            </button>
+
+            {/* Clear Filters */}
+            {(searchQuery || Object.values(advancedFilters).some(v => v && v !== 'all')) && (
+              <button
+                onClick={clearAllFilters}
+                className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+                style={{
+                  backgroundColor: 'var(--bg)',
+                  color: '#ef4444',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Advanced Search Panel */}
+        {showAdvancedSearch && (
+          <div className="mb-6 p-4 rounded-lg space-y-4" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Status
+                </label>
+                <select
+                  value={advancedFilters.status}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, status: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                  <option value="running">Running</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Namespace Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Category
+                </label>
+                <select
+                  value={advancedFilters.namespace}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, namespace: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <option value="all">All Categories</option>
+                  {namespaces.map((ns) => (
+                    <option key={ns.id} value={ns.name}>{ns.displayName}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={advancedFilters.dateFrom}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={advancedFilters.dateTo}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                />
+              </div>
+
+              {/* Automation Name */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Automation Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Filter by name..."
+                  value={advancedFilters.automationName}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, automationName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                />
+              </div>
+
+              {/* Executed By */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Executed By
+                </label>
+                <input
+                  type="text"
+                  placeholder="Filter by user..."
+                  value={advancedFilters.executedBy}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, executedBy: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Results Table */}
+        {loading ? (
+          <div className="text-center py-12">
+            <p style={{ color: 'var(--muted)' }}>Loading records...</p>
+          </div>
+        ) : paginatedRuns.length === 0 ? (
+          <div className="text-center py-12">
+            <Eye className="h-12 w-12 mx-auto mb-3" style={{ color: 'var(--muted)', opacity: 0.5 }} />
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>No records found matching your criteria</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Run ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Automation
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Category
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Executed By
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Started At
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      Duration
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                      AWX Job
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRuns.map((run) => {
+                    const automation = automations.find(a => a.id === run.automationId);
+                    const statusConfig = {
+                      success: { color: '#22c55e', bg: '#22c55e15', icon: CheckCircle },
+                      failed: { color: '#ef4444', bg: '#ef444415', icon: XCircle },
+                      running: { color: '#3b82f6', bg: '#3b82f615', icon: Clock },
+                      pending: { color: '#f59e0b', bg: '#f59e0b15', icon: AlertCircle },
+                    };
+
+                    const config = statusConfig[run.status] || statusConfig.pending;
+                    const StatusIcon = config.icon;
+
+                    const duration = run.completedAt
+                      ? ((new Date(run.completedAt) - new Date(run.startedAt)) / 1000 / 60).toFixed(1)
+                      : null;
+
+                    return (
+                      <tr
+                        key={run.id}
+                        className="hover:opacity-80 transition-opacity"
+                        style={{ borderBottom: '1px solid var(--border)' }}
+                      >
+                        <td className="px-4 py-3">
+                          <code className="text-xs font-mono" style={{ color: '#4C12A1' }}>
+                            {run.uniqueId || run.id.substring(0, 8)}
+                          </code>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div
+                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
+                            style={{ backgroundColor: config.bg, color: config.color }}
+                          >
+                            <StatusIcon className="h-3 w-3" />
+                            {run.status}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium truncate max-w-xs" style={{ color: 'var(--text)' }}>
+                            {automation?.name || 'Unknown'}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                            {automation?.namespace || '-'}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm" style={{ color: 'var(--text)' }}>
+                            {run.executedBy || '-'}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                            {new Date(run.startedAt).toLocaleString()}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-mono" style={{ color: 'var(--text)' }}>
+                            {duration ? `${duration} min` : '-'}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+                            {run.awxJobId || '-'}
+                          </p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
+              {/* Page Size Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>Show</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="px-3 py-1.5 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: 'var(--bg)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                  entries per page
+                </span>
+              </div>
+
+              {/* Pagination Info and Navigation */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredDetailedRuns.length)} of {filteredDetailedRuns.length} records
+                </span>
+
+                <div className="flex items-center gap-2">
+                  {/* First Page */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)'
+                    }}
+                  >
+                    First
+                  </button>
+
+                  {/* Previous Page */}
+                  <button
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)'
+                    }}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                          style={{
+                            backgroundColor: currentPage === pageNum ? '#4C12A1' : 'var(--bg)',
+                            color: currentPage === pageNum ? 'white' : 'var(--text)',
+                            border: `1px solid ${currentPage === pageNum ? '#4C12A1' : 'var(--border)'}`
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Page */}
+                  <button
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)'
+                    }}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+
+                  {/* Last Page */}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)'
+                    }}
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
