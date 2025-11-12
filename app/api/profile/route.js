@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Helper function to validate UUID format
+function isValidUUID(str) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 // GET /api/profile?userId=xxx - Get user profile
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     let userId = searchParams.get('userId');
 
-    // If no userId provided, return a default profile structure
-    if (!userId) {
+    // If no userId provided or invalid UUID, try to find user by email or get admin user
+    if (!userId || !isValidUUID(userId)) {
+      console.log('Invalid or missing userId, looking for default user...');
+
       // Try to get the first admin user as a default
       const adminUser = await prisma.user.findFirst({
         where: { role: 'admin' },
@@ -24,6 +32,7 @@ export async function GET(request) {
 
       if (adminUser) {
         userId = adminUser.id;
+        console.log('Using admin user:', adminUser.email);
       } else {
         return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
       }
@@ -76,10 +85,22 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const body = await request.json();
-    const { userId, ...updateData } = body;
+    let { userId, ...updateData } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    // Ensure userId is a string (handle both string and numeric IDs from localStorage)
+    userId = String(userId);
+
+    // Validate UUID format
+    if (!isValidUUID(userId)) {
+      console.error('Invalid user ID format:', userId);
+      return NextResponse.json(
+        { error: 'Invalid user ID format. Please log out and log back in.' },
+        { status: 400 }
+      );
     }
 
     // Only allow updating specific fields
