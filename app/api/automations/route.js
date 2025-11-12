@@ -106,6 +106,7 @@ export async function POST(request) {
         keywords: safeStringify(body.keywords, []),
         tags: safeStringify(body.tags, []),
         formSchema: safeStringify(body.formSchema, []),
+        customBody: body.customBody || '',
         apiEndpoint: '', // Always empty - use global setting from Settings
         templateId: body.templateId || '',
         inventoryId: body.inventoryId || '',
