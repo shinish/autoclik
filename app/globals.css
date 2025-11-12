@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base design tokens + themes.
+ * FIS Brand Colors
+ */
+
+:root {
+  /* ===== FIS Brand (Light) ===== */
+  --fis-green: #00a859;       /* Primary brand green */
+  --fis-teal:  #00c2a0;       /* Accent teal */
+  --fis-navy:  #0b1e2d;       /* Deep navy (text accents) */
+  --fis-grey:  #475569;       /* Slate grey (muted copy) */
+
+  /* ===== Semantic Palette (Light) ===== */
+  --bg:        #ffffff;
+  --surface:   #f8fafc;       /* panel surfaces */
+  --sidebar-bg: #e2e8f0;      /* darker sidebar background for light mode */
+  --text:      #0f172a;       /* main text */
+  --muted:     #475569;
+  --primary:   var(--fis-green);
+  --secondary: var(--fis-teal);
+  --accent:    #22c55e;       /* success accent */
+  --success:   #16a34a;
+  --warning:   #eab308;
+  --danger:    #dc2626;
+  --border:    #e2e8f0;
+
+  /* ===== Radii & Shadows ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(2, 8, 23, 0.06);
+  --shadow-md: 0 4px 16px rgba(2, 8, 23, 0.08);
+
+  /* ===== Motion ===== */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+
+  /* Legacy Variables (for compatibility) */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --primary: var(--fis-green);
+  --primary-hover: #008c47;
+}
+
+:root[data-theme="dark"] {
+  /* ===== FIS Brand (Dark transforms) ===== */
+  --fis-green: #00c76f;       /* brightened green for dark mode */
+  --fis-teal:  #00d4ae;       /* brightened teal */
+  --fis-navy:  #a8b9ff;       /* lightened navy for readability */
+  --fis-grey:  #94a3b8;
+
+  /* ===== Semantic Palette (Dark) ===== */
+  --bg:        #0f172a;       /* slate-900 */
+  --surface:   #1e293b;       /* slate-800 */
+  --sidebar-bg: #1e293b;      /* same as surface for dark mode */
+  --text:      #f1f5f9;       /* slate-100 */
+  --muted:     #94a3b8;       /* slate-400 */
+  --primary:   var(--fis-green);
+  --secondary: var(--fis-teal);
+  --accent:    #4ade80;
+  --success:   #10b981;       /* emerald-500 */
+  --warning:   #f59e0b;       /* amber-500 */
+  --danger:    #ef4444;       /* red-500 */
+  --border:    #334155;       /* slate-700 */
+
+  /* Legacy Variables (for compatibility) */
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1220;
+    --foreground: #e2e8f0;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Utility classes */
+.theme-bg      { background-color: var(--bg); }
+.theme-surface { background-color: var(--surface); }
+.theme-text    { color: var(--text); }
+.theme-muted   { color: var(--muted); }
+.theme-border  { border-color: var(--border); }
+
+/* Example component tokens */
+.btn {
+  border-radius: var(--radius-md);
+  transition: background var(--transition-normal), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-md);
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Toast animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
