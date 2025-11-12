@@ -18,6 +18,7 @@ import {
   Bell
 } from 'lucide-react';
 import FlowerLogo from './FlowerLogo';
+import { getCurrentUser, forceLogout } from '@/lib/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'user'] },
@@ -42,20 +43,23 @@ export default function Sidebar() {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    // Get user from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    // Get user from localStorage and validate
+    const validUser = getCurrentUser();
+
+    if (validUser) {
+      setUser(validUser);
     } else {
-      // Set default demo user if no user in localStorage
-      const defaultUser = {
-        id: 'demo-user-shinish',
-        name: 'Shinish Sasidharan',
-        email: 'shinish.sasidharan@fisglobal.com',
-        role: 'admin',
-      };
-      setUser(defaultUser);
-      localStorage.setItem('user', JSON.stringify(defaultUser));
+      // Check if there was invalid user data
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        // Invalid user data detected - force logout
+        console.error('Invalid user session detected (invalid ID format). Forcing logout...');
+        forceLogout();
+      } else {
+        // No user data - redirect to login
+        router.push('/login');
+      }
+      return;
     }
 
     // Fetch notifications to get unread count

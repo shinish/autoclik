@@ -5,8 +5,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // Hash password for admin user
-  const hashedPassword = await bcrypt.hash('admin', 10);
+  // Hash password for admin user (password: admin123)
+  const hashedPassword = await bcrypt.hash('admin123', 10);
 
   // Create namespaces
   const infraNamespace = await prisma.namespace.create({

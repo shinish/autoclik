@@ -91,7 +91,7 @@ npm run prisma:seed
 
 **Default admin credentials:**
 - Username: `admin`
-- Password: `admin`
+- Password: `admin123`
 
 ### Step 6: Start Development Server
 ```cmd

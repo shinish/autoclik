@@ -75,7 +75,7 @@ if not exist prisma\dev.db (
     echo.
     echo Default admin credentials:
     echo   Username: admin
-    echo   Password: admin
+    echo   Password: admin123
 ) else (
     echo Database already exists. Skipping...
     echo To reset database, delete prisma\dev.db and run this script again.

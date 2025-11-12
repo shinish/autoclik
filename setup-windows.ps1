@@ -88,7 +88,7 @@ if (-not (Test-Path "prisma/dev.db")) {
     Write-Host ""
     Write-Host "Default admin credentials:" -ForegroundColor Cyan
     Write-Host "  Username: admin" -ForegroundColor White
-    Write-Host "  Password: admin" -ForegroundColor White
+    Write-Host "  Password: admin123" -ForegroundColor White
 } else {
     Write-Host "Database already exists. Skipping..." -ForegroundColor Gray
     Write-Host "To reset database, delete prisma/dev.db and run this script again." -ForegroundColor Gray
