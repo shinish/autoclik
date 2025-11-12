@@ -477,12 +477,22 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
         fetchUsers();
         setShowModal(false);
         resetForm();
+
+        // Show default password if one was generated
+        if (data.defaultPassword) {
+          alert(`User created successfully!\n\nDefault Password: ${data.defaultPassword}\n\nPlease save this password and share it with the user. They should change it on first login.`);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to create user');
       }
     } catch (error) {
       console.error('Error creating user:', error);
+      alert('Failed to create user');
     }
   };
 
@@ -535,6 +545,8 @@ export default function SettingsPage() {
       ...formData,
       name: group.name,
       description: group.description || '',
+      groupMembers: group.members?.map(m => m.userId) || [],
+      modulePermissions: group.modulePermissions || [],
     });
     setModalType('edit-group');
     setShowModal(true);
@@ -614,25 +626,59 @@ export default function SettingsPage() {
   const handleUpdateGroup = async () => {
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+      // Update group basic info and permissions
       const res = await fetch(`/api/groups/${selectedItem.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
+          modulePermissions: formData.modulePermissions,
           performedBy: currentUser.email || 'admin',
         }),
       });
 
-      if (res.ok) {
-        fetchGroups();
-        setShowModal(false);
-        resetForm();
-        setSelectedItem(null);
-      } else {
+      if (!res.ok) {
         const data = await res.json();
         alert(data.error || 'Failed to update group');
+        return;
       }
+
+      // Update group members
+      const currentMembers = selectedItem.members?.map(m => m.userId) || [];
+      const newMembers = formData.groupMembers || [];
+
+      // Find members to add (in newMembers but not in currentMembers)
+      const membersToAdd = newMembers.filter(userId => !currentMembers.includes(userId));
+
+      // Find members to remove (in currentMembers but not in newMembers)
+      const membersToRemove = currentMembers.filter(userId => !newMembers.includes(userId));
+
+      // Add new members
+      for (const userId of membersToAdd) {
+        await fetch(`/api/groups/${selectedItem.id}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            performedBy: currentUser.email || 'admin',
+          }),
+        });
+      }
+
+      // Remove old members
+      for (const userId of membersToRemove) {
+        await fetch(`/api/groups/${selectedItem.id}/members?userId=${userId}&performedBy=${currentUser.email || 'admin'}`, {
+          method: 'DELETE',
+        });
+      }
+
+      // Refresh groups and close modal
+      fetchGroups();
+      setShowModal(false);
+      resetForm();
+      setSelectedItem(null);
     } catch (error) {
       console.error('Error updating group:', error);
       alert('Failed to update group');
@@ -2420,6 +2466,207 @@ export default function SettingsPage() {
 
                         const updateModulePermission = (permission, value) => {
                           const updated = formData.modulePermissions.filter(p => p.module !== module.name);
+                          updated.push({ ...perms, [permission]: value });
+                          setFormData({ ...formData, modulePermissions: updated });
+                        };
+
+                        return (
+                          <div key={module.name} className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+                            <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>{module.label}</p>
+                            <div className="flex gap-4">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={perms.canRead}
+                                  onChange={(e) => updateModulePermission('canRead', e.target.checked)}
+                                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                />
+                                <span className="text-xs" style={{ color: 'var(--muted)' }}>Read</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={perms.canWrite}
+                                  onChange={(e) => updateModulePermission('canWrite', e.target.checked)}
+                                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                />
+                                <span className="text-xs" style={{ color: 'var(--muted)' }}>Write</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={perms.canDelete}
+                                  onChange={(e) => updateModulePermission('canDelete', e.target.checked)}
+                                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                />
+                                <span className="text-xs" style={{ color: 'var(--muted)' }}>Delete</span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'edit-group' && (
+                <>
+                  {/* Row 1 */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Group Name<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="DevOps Team"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--fis-green)'
+                      }}
+                    />
+                  </div>
+
+                  {/* Row 2 */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Team responsible for DevOps operations"
+                      rows={2}
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 resize-none"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--fis-green)'
+                      }}
+                    />
+                  </div>
+
+                  {/* Group Members Section */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+                      Group Members
+                    </label>
+                    <div className="space-y-3 p-4 rounded-lg" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}>
+                      {/* Add Member Dropdown */}
+                      <div>
+                        <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
+                          Add Member
+                        </label>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const userId = e.target.value;
+                            if (userId && !formData.groupMembers?.includes(userId)) {
+                              setFormData({
+                                ...formData,
+                                groupMembers: [...(formData.groupMembers || []), userId]
+                              });
+                            }
+                          }}
+                          className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none"
+                          style={{
+                            border: '1px solid var(--border)',
+                            backgroundColor: 'var(--bg)',
+                            color: 'var(--text)',
+                            focusRing: 'var(--fis-green)',
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '1.5em 1.5em',
+                            paddingRight: '2.5rem'
+                          }}
+                        >
+                          <option value="">Select a user to add...</option>
+                          {users
+                            .filter(u => !formData.groupMembers?.includes(u.id))
+                            .map(user => (
+                              <option key={user.id} value={user.id}>
+                                {user.name} ({user.email})
+                              </option>
+                            ))
+                          }
+                        </select>
+                      </div>
+
+                      {/* Current Members List */}
+                      <div>
+                        <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
+                          Current Members ({formData.groupMembers?.length || 0})
+                        </label>
+                        {formData.groupMembers && formData.groupMembers.length > 0 ? (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {formData.groupMembers.map(userId => {
+                              const user = users.find(u => u.id === userId);
+                              if (!user) return null;
+                              return (
+                                <div
+                                  key={userId}
+                                  className="flex items-center justify-between p-2 rounded"
+                                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4" style={{ color: 'var(--muted)' }} />
+                                    <div>
+                                      <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                                        {user.name}
+                                      </p>
+                                      <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                                        {user.email}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({
+                                        ...formData,
+                                        groupMembers: formData.groupMembers.filter(id => id !== userId)
+                                      });
+                                    }}
+                                    className="p-1.5 rounded hover:bg-red-50 transition-colors"
+                                    title="Remove member"
+                                  >
+                                    <X className="h-4 w-4 text-red-600" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
+                            No members in this group yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+                      Module Permissions
+                    </label>
+                    <div className="space-y-3 p-4 rounded-lg" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}>
+                      {modules.map((module) => {
+                        const perms = formData.modulePermissions?.find(p => p.module === module.name) || {
+                          module: module.name,
+                          canRead: true,
+                          canWrite: false,
+                          canDelete: false
+                        };
+
+                        const updateModulePermission = (permission, value) => {
+                          const updated = (formData.modulePermissions || []).filter(p => p.module !== module.name);
                           updated.push({ ...perms, [permission]: value });
                           setFormData({ ...formData, modulePermissions: updated });
                         };
