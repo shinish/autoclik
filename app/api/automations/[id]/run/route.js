@@ -254,13 +254,14 @@ export async function POST(request, { params }) {
           },
         });
       } catch (pollError) {
-        // If polling times out or fails, mark as running and let user check later
+        // If polling times out or fails, mark as failed with timeout message
         console.error('Job polling error:', pollError);
         await prisma.run.update({
           where: { id: run.id },
           data: {
-            status: 'running',
-            errorMessage: `Job is still running. Check AWX for status: ${pollError.message}`,
+            status: 'failed',
+            errorMessage: `Job execution timeout: ${pollError.message}. Check AWX Job ID ${jobId} for actual status.`,
+            completedAt: new Date(),
           },
         });
       }
