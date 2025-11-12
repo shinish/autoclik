@@ -1,0 +1,86 @@
+---
+- name: Manage User Accounts
+  hosts: all
+  become: yes
+  vars:
+    action: "{{ user_action | default('create') }}"
+    username: "{{ user_name }}"
+    user_groups: "{{ groups | default('users') }}"
+    user_shell: "{{ shell | default('/bin/bash') }}"
+    ssh_key: "{{ public_key | default('') }}"
+    sudo_access: "{{ enable_sudo | default(false) }}"
+
+  tasks:
+    - name: Create user account
+      user:
+        name: "{{ username }}"
+        groups: "{{ user_groups }}"
+        shell: "{{ user_shell }}"
+        create_home: yes
+        state: present
+      when: action == "create"
+
+    - name: Add user to sudo group
+      user:
+        name: "{{ username }}"
+        groups: sudo
+        append: yes
+      when: action == "create" and sudo_access | bool
+
+    - name: Set up SSH directory
+      file:
+        path: "/home/{{ username }}/.ssh"
+        state: directory
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        mode: '0700'
+      when: action == "create" and ssh_key != ""
+
+    - name: Add SSH public key
+      authorized_key:
+        user: "{{ username }}"
+        key: "{{ ssh_key }}"
+        state: present
+      when: action == "create" and ssh_key != ""
+
+    - name: Lock user account
+      user:
+        name: "{{ username }}"
+        password_lock: yes
+      when: action == "lock"
+
+    - name: Unlock user account
+      user:
+        name: "{{ username }}"
+        password_lock: no
+      when: action == "unlock"
+
+    - name: Delete user account
+      user:
+        name: "{{ username }}"
+        state: absent
+        remove: yes
+      when: action == "delete"
+
+    - name: Modify user groups
+      user:
+        name: "{{ username }}"
+        groups: "{{ user_groups }}"
+        append: no
+      when: action == "modify"
+
+    - name: Set password expiry
+      command: chage -M 90 {{ username }}
+      when: action == "create" or action == "modify"
+      changed_when: true
+
+    - name: Display user info
+      command: id {{ username }}
+      register: user_info
+      changed_when: false
+      when: action != "delete"
+
+    - name: Show user details
+      debug:
+        msg: "{{ user_info.stdout }}"
+      when: action != "delete" and user_info is defined

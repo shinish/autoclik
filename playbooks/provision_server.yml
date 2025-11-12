@@ -1,0 +1,60 @@
+---
+- name: Provision New Linux Server
+  hosts: all
+  become: yes
+  vars:
+    server_hostname: "{{ hostname | default('server01') }}"
+    install_packages: "{{ packages | default('vim,htop,curl,wget') }}"
+    create_users: "{{ users | default([]) }}"
+    timezone: "{{ server_timezone | default('UTC') }}"
+
+  tasks:
+    - name: Set hostname
+      hostname:
+        name: "{{ server_hostname }}"
+
+    - name: Update all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      apt:
+        name: "{{ install_packages.split(',') }}"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Set timezone
+      timezone:
+        name: "{{ timezone }}"
+
+    - name: Create users
+      user:
+        name: "{{ item.username }}"
+        groups: "{{ item.groups | default('') }}"
+        shell: /bin/bash
+        create_home: yes
+      loop: "{{ create_users }}"
+      when: create_users | length > 0
+
+    - name: Enable and start firewall
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Allow SSH through firewall
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Configure automatic security updates
+      apt:
+        name: unattended-upgrades
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Display server info
+      debug:
+        msg: "Server {{ server_hostname }} has been provisioned successfully"

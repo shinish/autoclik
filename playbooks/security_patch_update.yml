@@ -1,0 +1,116 @@
+---
+- name: Apply Security Patches
+  hosts: all
+  become: yes
+  vars:
+    auto_reboot: "{{ reboot_if_required | default(false) }}"
+    patch_type: "{{ update_type | default('security') }}"
+    create_snapshot: "{{ backup_before_update | default(true) }}"
+
+  tasks:
+    - name: Gather package facts
+      package_facts:
+        manager: auto
+
+    - name: Get current kernel version
+      command: uname -r
+      register: current_kernel
+      changed_when: false
+
+    - name: Display current kernel
+      debug:
+        msg: "Current kernel version: {{ current_kernel.stdout }}"
+
+    - name: Update apt cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: List available security updates (Debian/Ubuntu)
+      shell: apt list --upgradable 2>/dev/null | grep -i security || true
+      register: security_updates
+      changed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: Display available security updates
+      debug:
+        msg: "{{ security_updates.stdout_lines }}"
+      when: ansible_os_family == "Debian" and security_updates.stdout != ""
+
+    - name: Install security updates only (Debian/Ubuntu)
+      apt:
+        upgrade: safe
+        autoremove: yes
+        autoclean: yes
+      when: ansible_os_family == "Debian" and patch_type == "security"
+      register: security_update_result
+
+    - name: Install all updates (Debian/Ubuntu)
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      when: ansible_os_family == "Debian" and patch_type == "all"
+      register: full_update_result
+
+    - name: Update yum cache (RedHat/CentOS)
+      yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install security updates (RedHat/CentOS)
+      yum:
+        name: '*'
+        state: latest
+        security: yes
+      when: ansible_os_family == "RedHat" and patch_type == "security"
+
+    - name: Install all updates (RedHat/CentOS)
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_os_family == "RedHat" and patch_type == "all"
+
+    - name: Check if reboot is required (Debian/Ubuntu)
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      when: ansible_os_family == "Debian"
+
+    - name: Check if reboot is required (RedHat/CentOS)
+      shell: needs-restarting -r
+      register: reboot_required_rhel
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Display reboot requirement
+      debug:
+        msg: "System reboot is required to complete updates"
+      when: >
+        (ansible_os_family == "Debian" and reboot_required.stat.exists) or
+        (ansible_os_family == "RedHat" and reboot_required_rhel.rc != 0)
+
+    - name: Reboot system if required
+      reboot:
+        msg: "Rebooting system after security updates"
+        reboot_timeout: 300
+      when: >
+        auto_reboot | bool and (
+          (ansible_os_family == "Debian" and reboot_required.stat.exists) or
+          (ansible_os_family == "RedHat" and reboot_required_rhel.rc != 0)
+        )
+
+    - name: Verify services are running after update
+      systemd:
+        name: "{{ item }}"
+        state: started
+      loop:
+        - ssh
+        - cron
+      ignore_errors: yes
+
+    - name: Display update summary
+      debug:
+        msg: "Security patches applied successfully. Reboot required: {{ reboot_required.stat.exists | default(false) }}"

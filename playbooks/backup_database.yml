@@ -1,0 +1,75 @@
+---
+- name: Backup Database
+  hosts: all
+  become: yes
+  vars:
+    db_type: "{{ database_type | default('mysql') }}"
+    db_name: "{{ database_name }}"
+    db_user: "{{ database_user | default('root') }}"
+    db_password: "{{ database_password }}"
+    backup_path: "{{ backup_directory | default('/var/backups/db') }}"
+    retention_days: "{{ retention | default(7) }}"
+    compression: "{{ compress | default(true) }}"
+
+  tasks:
+    - name: Ensure backup directory exists
+      file:
+        path: "{{ backup_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Install MySQL client (if needed)
+      apt:
+        name: mysql-client
+        state: present
+      when: db_type == "mysql" and ansible_os_family == "Debian"
+
+    - name: Install PostgreSQL client (if needed)
+      apt:
+        name: postgresql-client
+        state: present
+      when: db_type == "postgresql" and ansible_os_family == "Debian"
+
+    - name: Backup MySQL database
+      mysql_db:
+        name: "{{ db_name }}"
+        state: dump
+        target: "{{ backup_path }}/{{ db_name }}_{{ ansible_date_time.iso8601_basic_short }}.sql"
+        login_user: "{{ db_user }}"
+        login_password: "{{ db_password }}"
+      when: db_type == "mysql"
+
+    - name: Backup PostgreSQL database
+      postgresql_db:
+        name: "{{ db_name }}"
+        state: dump
+        target: "{{ backup_path }}/{{ db_name }}_{{ ansible_date_time.iso8601_basic_short }}.sql"
+        login_user: "{{ db_user }}"
+        login_password: "{{ db_password }}"
+      when: db_type == "postgresql"
+
+    - name: Compress backup file
+      archive:
+        path: "{{ backup_path }}/{{ db_name }}_{{ ansible_date_time.iso8601_basic_short }}.sql"
+        dest: "{{ backup_path }}/{{ db_name }}_{{ ansible_date_time.iso8601_basic_short }}.sql.gz"
+        format: gz
+        remove: yes
+      when: compression | bool
+
+    - name: Remove old backups
+      find:
+        paths: "{{ backup_path }}"
+        patterns: "{{ db_name }}_*.sql.gz"
+        age: "{{ retention_days }}d"
+      register: old_backups
+
+    - name: Delete old backup files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      when: old_backups.files | length > 0
+
+    - name: Display backup info
+      debug:
+        msg: "Database {{ db_name }} backed up successfully to {{ backup_path }}"

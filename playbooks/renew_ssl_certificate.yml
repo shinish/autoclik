@@ -1,0 +1,79 @@
+---
+- name: Renew SSL Certificate
+  hosts: all
+  become: yes
+  vars:
+    domain_name: "{{ domain }}"
+    email_address: "{{ email }}"
+    web_server: "{{ webserver | default('nginx') }}"
+    cert_path: "/etc/letsencrypt/live/{{ domain_name }}"
+
+  tasks:
+    - name: Install certbot
+      apt:
+        name:
+          - certbot
+          - "python3-certbot-{{ web_server }}"
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Check if certificate exists
+      stat:
+        path: "{{ cert_path }}/fullchain.pem"
+      register: cert_file
+
+    - name: Get certificate expiry date
+      shell: |
+        openssl x509 -in {{ cert_path }}/fullchain.pem -noout -enddate | cut -d= -f2
+      register: cert_expiry
+      when: cert_file.stat.exists
+      changed_when: false
+
+    - name: Display current certificate expiry
+      debug:
+        msg: "Current certificate expires on: {{ cert_expiry.stdout }}"
+      when: cert_file.stat.exists
+
+    - name: Renew certificate
+      command: certbot renew --quiet --{{ web_server }}
+      register: renewal_result
+      changed_when: "'no renewal' not in renewal_result.stdout"
+
+    - name: Obtain new certificate (if doesn't exist)
+      command: >
+        certbot certonly --{{ web_server }}
+        -d {{ domain_name }}
+        --email {{ email_address }}
+        --agree-tos
+        --non-interactive
+      when: not cert_file.stat.exists
+
+    - name: Reload web server (Nginx)
+      systemd:
+        name: nginx
+        state: reloaded
+      when: web_server == "nginx"
+
+    - name: Reload web server (Apache)
+      systemd:
+        name: apache2
+        state: reloaded
+      when: web_server == "apache"
+
+    - name: Setup automatic renewal cron job
+      cron:
+        name: "Renew Let's Encrypt certificates"
+        job: "certbot renew --quiet --{{ web_server }} && systemctl reload {{ web_server }}"
+        minute: "0"
+        hour: "3"
+        day: "*/7"
+
+    - name: Verify certificate
+      command: certbot certificates
+      register: cert_info
+      changed_when: false
+
+    - name: Display certificate info
+      debug:
+        msg: "{{ cert_info.stdout_lines }}"
