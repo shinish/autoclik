@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Calendar, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, TrendingDown, Download, ChevronDown, ChevronUp, Activity, FileText, FileSpreadsheet, Search, Filter, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -163,12 +163,15 @@ export default function AuditPage() {
     setShowExportMenu(false);
   };
 
-  const exportToExcel = () => {
-    // Create workbook with multiple sheets
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
+    // Create workbook with ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'AutoClik Platform';
+    workbook.created = new Date();
 
     // Sheet 1: Summary Stats
-    const summaryData = [
+    const summarySheet = workbook.addWorksheet('Summary');
+    summarySheet.addRows([
       ['Audit Report Summary'],
       ['Generated:', new Date().toLocaleDateString()],
       ['Time Range:', timeRange.charAt(0).toUpperCase() + timeRange.slice(1)],
@@ -180,28 +183,31 @@ export default function AuditPage() {
       ['Running', stats.running],
       ['Pending', stats.pending],
       ['Success Rate', `${calculateSuccessRate()}%`],
-    ];
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    ]);
 
     // Sheet 2: Execution History
-    const historyData = [
+    const historySheet = workbook.addWorksheet('Execution History');
+    historySheet.addRows([
       ['Date', 'Total', 'Success', 'Failed', 'Running', 'Pending'],
       ...chartData.map(d => [d.label, d.total, d.success, d.failed, d.running, d.pending])
-    ];
-    const historySheet = XLSX.utils.aoa_to_sheet(historyData);
-    XLSX.utils.book_append_sheet(wb, historySheet, 'Execution History');
+    ]);
 
     // Sheet 3: Top Automations
-    const topAutomationsData = [
+    const topSheet = workbook.addWorksheet('Top Automations');
+    topSheet.addRows([
       ['Rank', 'Automation Name', 'Namespace', 'Total Runs'],
       ...topAutomations.map((auto, idx) => [idx + 1, auto.name, auto.namespace, auto.runs || 0])
-    ];
-    const topSheet = XLSX.utils.aoa_to_sheet(topAutomationsData);
-    XLSX.utils.book_append_sheet(wb, topSheet, 'Top Automations');
+    ]);
 
     // Download
-    XLSX.writeFile(wb, `audit-report-${timeRange}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit-report-${timeRange}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
     setShowExportMenu(false);
   };
 
