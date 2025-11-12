@@ -72,6 +72,29 @@ if (-not (Test-Path ".env")) {
 }
 Write-Host ""
 
+# Setup database
+Write-Host "Step 6: Setting up database..." -ForegroundColor Yellow
+if (-not (Test-Path "prisma/dev.db")) {
+    Write-Host "Generating Prisma client..." -ForegroundColor Gray
+    npm run prisma:generate
+
+    Write-Host "Creating database schema..." -ForegroundColor Gray
+    npx prisma db push --accept-data-loss
+
+    Write-Host "Seeding database with initial data (users, automations, etc.)..." -ForegroundColor Gray
+    npm run prisma:seed
+
+    Write-Host "Database setup complete!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Default admin credentials:" -ForegroundColor Cyan
+    Write-Host "  Username: admin" -ForegroundColor White
+    Write-Host "  Password: admin" -ForegroundColor White
+} else {
+    Write-Host "Database already exists. Skipping..." -ForegroundColor Gray
+    Write-Host "To reset database, delete prisma/dev.db and run this script again." -ForegroundColor Gray
+}
+Write-Host ""
+
 # Complete
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "Setup Complete!" -ForegroundColor Green

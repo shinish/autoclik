@@ -86,7 +86,12 @@ AWX_TOKEN=your_awx_token_here
 ```cmd
 npx prisma generate
 npx prisma db push
+npm run prisma:seed
 ```
+
+**Default admin credentials:**
+- Username: `admin`
+- Password: `admin`
 
 ### Step 6: Start Development Server
 ```cmd

@@ -60,6 +60,28 @@ if not exist .env (
 )
 echo.
 
+echo Step 6: Setting up database...
+if not exist prisma\dev.db (
+    echo Generating Prisma client...
+    call npm run prisma:generate
+
+    echo Creating database schema...
+    call npx prisma db push --accept-data-loss
+
+    echo Seeding database with initial data ^(users, automations, etc.^)...
+    call npm run prisma:seed
+
+    echo Database setup complete!
+    echo.
+    echo Default admin credentials:
+    echo   Username: admin
+    echo   Password: admin
+) else (
+    echo Database already exists. Skipping...
+    echo To reset database, delete prisma\dev.db and run this script again.
+)
+echo.
+
 echo ========================================
 echo Setup Complete!
 echo ========================================
