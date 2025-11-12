@@ -5,23 +5,36 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // Hash password for admin user (password: admin123)
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  // Check if any users exist
+  const userCount = await prisma.user.count();
 
-  // Create only 1 admin user
-  const adminUser = await prisma.user.create({
-    data: {
-      firstName: 'Admin',
-      lastName: 'User',
-      name: 'Admin User',
-      samAccountName: 'admin',
-      email: 'admin',
-      password: hashedPassword,
-      role: 'admin',
-      enabled: true,
-      locked: false,
-    },
-  });
+  if (userCount === 0) {
+    console.log('No users found. Creating default admin user...');
+
+    // Hash password for admin user (password: admin123)
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+
+    // Create default admin user
+    const adminUser = await prisma.user.create({
+      data: {
+        firstName: 'Admin',
+        lastName: 'User',
+        name: 'Admin User',
+        samAccountName: 'admin',
+        email: 'admin',
+        password: hashedPassword,
+        role: 'admin',
+        enabled: true,
+        locked: false,
+      },
+    });
+
+    console.log('Default admin account created:');
+    console.log('  Username: admin');
+    console.log('  Password: admin123');
+  } else {
+    console.log(`Found ${userCount} existing user(s). Skipping admin user creation.`);
+  }
 
   // Create basic system settings
   await prisma.setting.create({
@@ -74,9 +87,6 @@ async function main() {
   });
 
   console.log('Database seeded successfully!');
-  console.log('Default admin account created:');
-  console.log('  Username: admin');
-  console.log('  Password: admin123');
 }
 
 main()
