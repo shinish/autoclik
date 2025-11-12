@@ -1,0 +1,56 @@
+@echo off
+REM Batch script to reset the database
+REM This will delete the existing database and create a fresh one with seed data
+
+echo ========================================
+echo Database Reset Script
+echo ========================================
+echo.
+
+REM Step 1: Delete existing database
+echo [1/3] Deleting existing database...
+
+if exist "prisma\dev.db" (
+    del /F /Q "prisma\dev.db"
+    echo   √ Deleted dev.db
+) else (
+    echo   i dev.db not found (skipping)
+)
+
+if exist "prisma\dev.db-journal" (
+    del /F /Q "prisma\dev.db-journal"
+    echo   √ Deleted dev.db-journal
+)
+
+echo.
+
+REM Step 2: Run Prisma migrations
+echo [2/3] Running Prisma migrations...
+call npx prisma migrate deploy
+
+if %ERRORLEVEL% neq 0 (
+    echo   × Prisma migrate deploy failed
+    exit /b 1
+)
+
+echo   √ Migrations applied successfully
+echo.
+
+REM Step 3: Seed the database
+echo [3/3] Seeding database...
+call npm run prisma:seed
+
+if %ERRORLEVEL% neq 0 (
+    echo   × Database seeding failed
+    exit /b 1
+)
+
+echo.
+echo ========================================
+echo √ Database reset completed successfully!
+echo ========================================
+echo.
+echo Default admin credentials:
+echo   Username: admin
+echo   Password: admin123
+echo.
