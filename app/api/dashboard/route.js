@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { logError, logInfo } from '@/lib/logger';
 
 export async function GET(request) {
   try {
     // Get user email from query parameters
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
+
+    logInfo('📊 Fetching dashboard data', { userEmail: userEmail || 'all users' });
 
     // Get total automations count
     const totalAutomations = await prisma.automation.count();
@@ -148,7 +151,25 @@ export async function GET(request) {
       firstTimeSetup: firstTimeSetup?.value === 'true',
     });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 });
+    logError('❌ Error fetching dashboard data', {
+      '🚨 Error Message': error.message,
+      '📋 Error Code': error.code || 'N/A',
+      '🔍 Error Name': error.name || 'N/A',
+      '📚 Stack Trace': error.stack,
+      '🔄 Retryable': error.retryable !== undefined ? error.retryable : 'undefined',
+      '🗄️ Meta': error.meta || 'N/A',
+      '👤 User Email': new URL(request.url).searchParams.get('userEmail') || 'none',
+    });
+
+    // Return detailed error for debugging
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch dashboard data',
+        details: error.message,
+        code: error.code,
+        retryable: error.retryable,
+      },
+      { status: 500 }
+    );
   }
 }
