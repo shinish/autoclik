@@ -32,16 +32,16 @@ fi
 
 echo ""
 
-# Step 2: Run Prisma migrations
-echo -e "${YELLOW}[2/3] Running Prisma migrations...${NC}"
-npx prisma migrate deploy
+# Step 2: Push Prisma schema to database
+echo -e "${YELLOW}[2/3] Pushing Prisma schema to database...${NC}"
+npx prisma db push --skip-generate
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}  ✗ Prisma migrate deploy failed${NC}"
+    echo -e "${RED}  ✗ Prisma db push failed${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}  ✓ Migrations applied successfully${NC}"
+echo -e "${GREEN}  ✓ Schema pushed successfully${NC}"
 echo ""
 
 # Step 3: Seed the database

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { launchJobTemplate, pollJobUntilComplete, getJobArtifacts, getJobOutput } from '@/lib/awx-api';
 import yaml from 'js-yaml';
 import { generateUniqueRunId } from '@/lib/runIdGenerator';
+import { logAutomationStart, logAutomationSuccess, logAutomationFailure, logError, logInfo } from '@/lib/logger';
 
 /**
  * Replace template variables in object recursively
@@ -97,6 +98,7 @@ export async function POST(request, { params }) {
     });
 
     if (!automation) {
+      logError('Automation not found', { automationId: id });
       return NextResponse.json({ error: 'Automation not found' }, { status: 404 });
     }
 
@@ -105,6 +107,9 @@ export async function POST(request, { params }) {
 
     // Use pre-reserved Task ID if provided, otherwise generate a new one
     let uniqueId = reservedTaskId || await generateUniqueRunId(body.user);
+
+    // Log automation start
+    logAutomationStart(automation.id, automation.name, uniqueId, parameters);
 
     // Create a run record with retry logic for duplicate uniqueId
     let run;
@@ -119,6 +124,14 @@ export async function POST(request, { params }) {
             executedBy: executedBy,
             parameters: JSON.stringify(parameters || {}),
           },
+        });
+        logInfo('✅ Database run record created successfully', {
+          '🆔 Run ID (Database)': run.id,
+          '🎫 Unique Run ID': uniqueId,
+          '🔧 Automation ID': automation.id,
+          '📊 Initial Status': 'running',
+          '👤 Executed By': executedBy,
+          '⏰ Created At': new Date().toISOString(),
         });
         break; // Success, exit loop
       } catch (createError) {
@@ -143,9 +156,9 @@ export async function POST(request, { params }) {
         // User edited the JSON directly - use it as-is
         try {
           requestBody = JSON.parse(customBodyOverride);
-          console.log('🔧 Using customBodyOverride from user edit');
+          logInfo('Using customBodyOverride from user edit', { uniqueId });
         } catch (parseError) {
-          console.error('Error parsing customBodyOverride:', parseError);
+          logError('Error parsing customBodyOverride', parseError);
           throw new Error('Invalid custom body override: ' + parseError.message);
         }
       } else if (automation.customBody) {
@@ -191,6 +204,12 @@ export async function POST(request, { params }) {
 
       // Fetch AWX config
       const awxConfig = await getAwxConfig();
+      logInfo('📡 AWX Configuration loaded', {
+        '🌐 Base URL': awxConfig.baseUrl || '(not configured)',
+        '🔑 Token Status': awxConfig.token ? `Configured (${awxConfig.token.length} chars)` : 'NOT CONFIGURED',
+        '🎯 Target Template ID': automation.templateId,
+        '📦 Request Body Size': JSON.stringify(requestBody).length + ' bytes',
+      });
 
       // Generate curl command for documentation
       const curlCommand = generateCurlCommand(
@@ -201,12 +220,28 @@ export async function POST(request, { params }) {
       );
 
       // Launch AWX job template
+      logInfo('🚀 Initiating AWX job template launch', {
+        '🎫 Run ID': uniqueId,
+        '🔧 Template ID': automation.templateId,
+        '🌐 AWX Endpoint': `${awxConfig.baseUrl}/job_templates/${automation.templateId}/launch/`,
+        '📤 Request Body': requestBody,
+        '⏰ Launch Time': new Date().toISOString(),
+      });
+
       const awxResponse = await launchJobTemplate(
         automation.templateId,
         requestBody
       );
 
       const jobId = awxResponse.id?.toString();
+      logInfo('✅ AWX job launched successfully', {
+        '🎫 Run ID': uniqueId,
+        '🔧 AWX Job ID': jobId,
+        '📊 Job Status': awxResponse.status,
+        '🔗 Job URL': awxResponse.url,
+        '⏰ Job Created': awxResponse.created,
+        '📝 Response': awxResponse,
+      });
 
       // Update run with AWX job ID
       await prisma.run.update({
@@ -222,9 +257,28 @@ export async function POST(request, { params }) {
       let artifacts = null;
 
       try {
+        logInfo('⏳ Polling AWX job for completion', {
+          '🔧 AWX Job ID': jobId,
+          '🎫 Run ID': uniqueId,
+          '⏱️ Max Wait Time': '300 seconds (5 minutes)',
+          '🔄 Poll Interval': '5 seconds',
+          '⏰ Started Polling': new Date().toISOString(),
+        });
+
         finalJobStatus = await pollJobUntilComplete(jobId, 300, 5); // 5 minutes max
 
+        logInfo('✅ AWX job polling completed', {
+          '🔧 AWX Job ID': jobId,
+          '📊 Final Status': finalJobStatus.status,
+          '⏱️ Elapsed Time': finalJobStatus.elapsed ? `${finalJobStatus.elapsed}s` : 'unknown',
+          '⏰ Finished At': finalJobStatus.finished || new Date().toISOString(),
+        });
+
         // Get artifacts and job output if job completed
+        logInfo('📦 Fetching job artifacts and output', {
+          '🔧 AWX Job ID': jobId,
+        });
+
         const [artifactData, jobOutput] = await Promise.all([
           getJobArtifacts(jobId),
           getJobOutput(jobId)
@@ -237,7 +291,11 @@ export async function POST(request, { params }) {
           fetched_at: new Date().toISOString()
         };
 
-        console.log('📦 Fetched artifacts:', JSON.stringify(artifacts, null, 2));
+        logInfo('✅ Artifacts and output fetched successfully', {
+          '🔧 AWX Job ID': jobId,
+          '📦 Artifacts Size': JSON.stringify(artifacts).length + ' bytes',
+          '📝 Has Output': !!jobOutput,
+        });
 
         // Determine final status
         const status = finalJobStatus.status === 'successful' ? 'success' : 'failed';
@@ -253,9 +311,24 @@ export async function POST(request, { params }) {
             completedAt: new Date(),
           },
         });
+
+        logInfo(`✅ Database updated with ${status} status`, {
+          '🆔 Run ID': run.id,
+          '📊 Status': status,
+          '🔧 AWX Job ID': jobId,
+          '⏰ Completed At': new Date().toISOString(),
+        });
       } catch (pollError) {
         // If polling times out or fails, mark as failed with timeout message
-        console.error('Job polling error:', pollError);
+        logError('⏱️ Job polling failed or timed out', {
+          '🔧 AWX Job ID': jobId,
+          '🎫 Run ID': uniqueId,
+          '🚨 Error': pollError.message,
+          '📍 Failure Point': 'Job status polling',
+          '💡 Note': `Check AWX Job ID ${jobId} directly on AWX server for actual status`,
+          '📚 Stack': pollError.stack,
+        });
+
         await prisma.run.update({
           where: { id: run.id },
           data: {
@@ -264,6 +337,7 @@ export async function POST(request, { params }) {
             completedAt: new Date(),
           },
         });
+        logAutomationFailure(automation.id, uniqueId, pollError, { awxJobId: jobId, phase: 'polling' });
       }
 
       // Increment automation runs counter
@@ -293,6 +367,9 @@ export async function POST(request, { params }) {
         },
       });
 
+      const finalStatus = finalJobStatus ? (finalJobStatus.status === 'successful' ? 'success' : 'failed') : 'running';
+      logAutomationSuccess(automation.id, uniqueId, jobId, finalStatus);
+
       return NextResponse.json({
         success: true,
         runId: run.id,
@@ -308,6 +385,12 @@ export async function POST(request, { params }) {
         artifacts: artifacts,
       });
     } catch (awxError) {
+      // Log the AWX error
+      logAutomationFailure(automation.id, uniqueId, awxError, {
+        phase: 'awx_execution',
+        templateId: automation.templateId
+      });
+
       // Update run with failed status
       await prisma.run.update({
         where: { id: run.id },
@@ -346,8 +429,14 @@ export async function POST(request, { params }) {
       );
     }
   } catch (error) {
-    console.error('Error running automation:', error);
-    return NextResponse.json({ error: 'Failed to run automation' }, { status: 500 });
+    logError('Unexpected error running automation', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to run automation',
+        details: error.message || 'An unexpected error occurred'
+      },
+      { status: 500 }
+    );
   }
 }
 

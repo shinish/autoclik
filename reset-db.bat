@@ -24,16 +24,16 @@ if exist "prisma\dev.db-journal" (
 
 echo.
 
-REM Step 2: Run Prisma migrations
-echo [2/3] Running Prisma migrations...
-call npx prisma migrate deploy
+REM Step 2: Push Prisma schema to database
+echo [2/3] Pushing Prisma schema to database...
+call npx prisma db push --skip-generate
 
 if %ERRORLEVEL% neq 0 (
-    echo   × Prisma migrate deploy failed
+    echo   × Prisma db push failed
     exit /b 1
 )
 
-echo   √ Migrations applied successfully
+echo   √ Schema pushed successfully
 echo.
 
 REM Step 3: Seed the database

@@ -302,10 +302,11 @@ export default function RunAutomationPage() {
         });
       }
     } catch (error) {
+      console.error('Error running automation:', error);
       setResult({
         success: false,
         message: 'Error running automation',
-        data: error,
+        data: { details: error.message || 'Network error or server unavailable' },
       });
     } finally {
       setRunning(false);

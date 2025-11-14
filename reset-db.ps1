@@ -30,15 +30,15 @@ try {
 
     Write-Host ""
 
-    # Step 2: Run Prisma migrations
-    Write-Host "[2/3] Running Prisma migrations..." -ForegroundColor Yellow
-    npx prisma migrate deploy
+    # Step 2: Push Prisma schema to database
+    Write-Host "[2/3] Pushing Prisma schema to database..." -ForegroundColor Yellow
+    npx prisma db push --skip-generate
 
     if ($LASTEXITCODE -ne 0) {
-        throw "Prisma migrate deploy failed"
+        throw "Prisma db push failed"
     }
 
-    Write-Host "  ✓ Migrations applied successfully" -ForegroundColor Green
+    Write-Host "  ✓ Schema pushed successfully" -ForegroundColor Green
     Write-Host ""
 
     # Step 3: Seed the database
