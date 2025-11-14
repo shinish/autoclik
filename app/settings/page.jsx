@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User, FileText, AlertCircle, AlertTriangle, Info, RefreshCw, Filter } from 'lucide-react';
 import Button from '@/components/Button';
 
 export default function SettingsPage() {
@@ -44,6 +44,13 @@ export default function SettingsPage() {
   const [tempEmailFrom, setTempEmailFrom] = useState('');
   const [tempEmailUsername, setTempEmailUsername] = useState('');
   const [tempEmailPassword, setTempEmailPassword] = useState('');
+
+  // Logs states
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logFilter, setLogFilter] = useState('all');
+  const [logsAutoRefresh, setLogsAutoRefresh] = useState(false);
+  const [logsTotal, setLogsTotal] = useState(0);
 
   // Search states
   const [namespaceSearch, setNamespaceSearch] = useState('');
@@ -902,6 +909,17 @@ export default function SettingsPage() {
                 }}
               >
                 Credentials
+              </button>
+              <button
+                onClick={() => setActiveTab('logs')}
+                className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80 flex items-center gap-2`}
+                style={{
+                  borderColor: activeTab === 'logs' ? 'var(--fis-green)' : 'transparent',
+                  color: activeTab === 'logs' ? 'var(--fis-green)' : 'var(--muted)'
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                Logs
               </button>
             </>
           )}
@@ -1969,6 +1987,22 @@ export default function SettingsPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Logs Tab */}
+      {activeTab === 'logs' && (
+        <LogsTabContent
+          logs={logs}
+          setLogs={setLogs}
+          logsLoading={logsLoading}
+          setLogsLoading={setLogsLoading}
+          logFilter={logFilter}
+          setLogFilter={setLogFilter}
+          logsAutoRefresh={logsAutoRefresh}
+          setLogsAutoRefresh={setLogsAutoRefresh}
+          logsTotal={logsTotal}
+          setLogsTotal={setLogsTotal}
+        />
       )}
 
       {/* Modal */}
@@ -3210,6 +3244,247 @@ function PermissionManager({ namespace, users, groups }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Logs Tab Component
+function LogsTabContent({
+  logs,
+  setLogs,
+  logsLoading,
+  setLogsLoading,
+  logFilter,
+  setLogFilter,
+  logsAutoRefresh,
+  setLogsAutoRefresh,
+  logsTotal,
+  setLogsTotal
+}) {
+  useEffect(() => {
+    fetchLogs();
+  }, [logFilter]);
+
+  useEffect(() => {
+    if (logsAutoRefresh) {
+      const interval = setInterval(fetchLogs, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [logsAutoRefresh, logFilter]);
+
+  const fetchLogs = async () => {
+    try {
+      setLogsLoading(true);
+      const levelParam = logFilter !== 'all' ? `&level=${logFilter}` : '';
+      const response = await fetch(`/api/logs?limit=100${levelParam}`);
+      const data = await response.json();
+      setLogs(data.logs || []);
+      setLogsTotal(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const clearLogs = async () => {
+    if (!confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/logs', { method: 'DELETE' });
+      if (response.ok) {
+        setLogs([]);
+        setLogsTotal(0);
+      }
+    } catch (error) {
+      console.error('Error clearing logs:', error);
+    }
+  };
+
+  const getLevelIcon = (level) => {
+    switch (level) {
+      case 'ERROR':
+        return <AlertCircle className="h-5 w-5" style={{ color: '#ef4444' }} />;
+      case 'WARN':
+        return <AlertTriangle className="h-5 w-5" style={{ color: '#f59e0b' }} />;
+      case 'INFO':
+        return <Info className="h-5 w-5" style={{ color: '#3b82f6' }} />;
+      default:
+        return <Info className="h-5 w-5" style={{ color: '#10b981' }} />;
+    }
+  };
+
+  const getLevelColor = (level) => {
+    switch (level) {
+      case 'ERROR':
+        return { bg: 'rgba(239, 68, 68, 0.1)', border: '#ef4444', text: '#dc2626' };
+      case 'WARN':
+        return { bg: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b', text: '#d97706' };
+      case 'INFO':
+        return { bg: 'rgba(59, 130, 246, 0.1)', border: '#3b82f6', text: '#2563eb' };
+      default:
+        return { bg: 'rgba(16, 185, 129, 0.1)', border: '#10b981', text: '#059669' };
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  if (logsLoading && logs.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="h-8 w-8 animate-spin" style={{ color: 'var(--fis-green)' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-lg font-light mb-2" style={{ color: 'var(--text)' }}>
+          System Logs
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          Monitor automation execution errors and system events
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-5 w-5" style={{ color: 'var(--muted)' }} />
+          <div className="flex gap-2">
+            {['all', 'ERROR', 'WARN', 'INFO'].map((level) => (
+              <button
+                key={level}
+                onClick={() => setLogFilter(level)}
+                className="px-4 py-2 rounded-lg transition-all text-sm"
+                style={{
+                  backgroundColor: logFilter === level ? 'var(--fis-green)' : 'var(--surface)',
+                  color: logFilter === level ? 'white' : 'var(--text)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {level === 'all' ? 'All Logs' : level}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
+            {logs.length} of {logsTotal} logs
+          </span>
+          <button
+            onClick={() => setLogsAutoRefresh(!logsAutoRefresh)}
+            className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all text-sm"
+            style={{
+              backgroundColor: logsAutoRefresh ? 'var(--fis-green)' : 'var(--surface)',
+              color: logsAutoRefresh ? 'white' : 'var(--text)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <RefreshCw className={`h-4 w-4 ${logsAutoRefresh ? 'animate-spin' : ''}`} />
+            Auto
+          </button>
+          <button
+            onClick={fetchLogs}
+            className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all hover:opacity-80 text-sm"
+            style={{
+              backgroundColor: 'var(--surface)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={clearLogs}
+            className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all hover:opacity-80 text-sm"
+            style={{
+              backgroundColor: '#ef4444',
+              color: 'white',
+              border: '1px solid #dc2626',
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Logs List */}
+      {logs.length === 0 ? (
+        <div
+          className="p-12 rounded-lg text-center"
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          <Info className="h-16 w-16 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
+          <h3 className="text-xl font-light mb-2" style={{ color: 'var(--text)' }}>
+            No logs found
+          </h3>
+          <p style={{ color: 'var(--muted)' }}>
+            {logFilter === 'all'
+              ? 'No logs have been recorded yet. Try running an automation.'
+              : `No ${logFilter} logs found. Try a different filter.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+          {logs.map((log, index) => {
+            const colors = getLevelColor(log.level);
+            return (
+              <div
+                key={index}
+                className="p-4 rounded-lg"
+                style={{
+                  backgroundColor: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  {getLevelIcon(log.level)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3
+                        className="font-medium text-sm"
+                        style={{ color: colors.text }}
+                      >
+                        {log.message}
+                      </h3>
+                      <span
+                        className="text-xs whitespace-nowrap ml-2"
+                        style={{ color: 'var(--muted)' }}
+                      >
+                        {formatTimestamp(log.timestamp)}
+                      </span>
+                    </div>
+                    {log.data && (
+                      <pre
+                        className="text-xs p-3 rounded overflow-x-auto"
+                        style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: colors.text,
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {typeof log.data === 'string'
+                          ? log.data
+                          : JSON.stringify(log.data, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
