@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { createErrorResponse } from '@/lib/errorHandler';
 
 export async function GET() {
   try {
@@ -9,7 +10,6 @@ export async function GET() {
 
     return NextResponse.json(notifications);
   } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to fetch notifications');
   }
 }

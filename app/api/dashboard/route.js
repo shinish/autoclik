@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { logError, logInfo } from '@/lib/logger';
+import { logInfo } from '@/lib/logger';
+import { createErrorResponse } from '@/lib/errorHandler';
 
 export async function GET(request) {
   try {
@@ -151,37 +152,6 @@ export async function GET(request) {
       firstTimeSetup: firstTimeSetup?.value === 'true',
     });
   } catch (error) {
-    // Comprehensive error logging - capture ALL error properties
-    const errorDetails = {
-      '🚨 Error Type': typeof error,
-      '📝 Error ToString': String(error),
-      '🔍 Constructor': error?.constructor?.name || 'Unknown',
-      '📋 Message': error?.message || (typeof error === 'string' ? error : 'No message'),
-      '🔢 Code': error?.code !== undefined ? error.code : 'No code property',
-      '📛 Name': error?.name || 'No name',
-      '🔄 Retryable': error?.retryable !== undefined ? error.retryable : 'No retryable property',
-      '🗄️ Meta': error?.meta ? JSON.stringify(error.meta) : 'No meta',
-      '📍 Cause': error?.cause ? String(error.cause) : 'No cause',
-      '📚 Stack': error?.stack || 'No stack trace',
-      '🔧 Client Version': error?.clientVersion || 'No client version',
-      '📊 All Properties': JSON.stringify(Object.keys(error || {})),
-      '🔬 Full Error Object': JSON.stringify(error, Object.getOwnPropertyNames(error)),
-      '👤 User Email': new URL(request.url).searchParams.get('userEmail') || 'none',
-    };
-
-    logError('❌ Error fetching dashboard data', errorDetails);
-
-    // Return detailed error for debugging
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch dashboard data',
-        details: error?.message || String(error),
-        errorType: error?.constructor?.name,
-        code: error?.code,
-        name: error?.name,
-        allKeys: Object.keys(error || {}),
-      },
-      { status: 500 }
-    );
+    return createErrorResponse(error, 'Failed to fetch dashboard data');
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 import { createNotification } from '@/lib/notification';
+import { createErrorResponse } from '@/lib/errorHandler';
 
 // GET /api/automations - List all automations
 export async function GET(request) {
@@ -72,8 +73,7 @@ export async function GET(request) {
 
     return NextResponse.json(transformedAutomations);
   } catch (error) {
-    console.error('Error fetching automations:', error);
-    return NextResponse.json({ error: 'Failed to fetch automations' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to fetch automations');
   }
 }
 
@@ -136,15 +136,13 @@ export async function POST(request) {
 
     return NextResponse.json(automation, { status: 201 });
   } catch (error) {
-    console.error('Error creating automation:', error);
-
     // Check for unique constraint violation
-    if (error.code === 'P2002' || error.message.includes('Unique constraint')) {
+    if (error?.code === 'P2002' || error?.message?.includes('Unique constraint')) {
       return NextResponse.json({
         error: 'An automation with this name already exists. Please choose a different name.'
       }, { status: 409 });
     }
 
-    return NextResponse.json({ error: 'Failed to create automation' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to create automation');
   }
 }

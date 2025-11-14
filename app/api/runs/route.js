@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { createErrorResponse } from '@/lib/errorHandler';
 
 // GET /api/runs - Get all runs with automation details
 export async function GET(request) {
@@ -36,7 +37,6 @@ export async function GET(request) {
 
     return NextResponse.json(runs);
   } catch (error) {
-    console.error('Error fetching runs:', error);
-    return NextResponse.json({ error: 'Failed to fetch runs' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to fetch runs');
   }
 }
