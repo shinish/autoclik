@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { createErrorResponse } from '@/lib/errorHandler';
 
 // PATCH /api/notifications/[id] - Mark notification as read
 export async function PATCH(request, { params }) {
@@ -17,12 +18,11 @@ export async function PATCH(request, { params }) {
     return NextResponse.json(notification);
   } catch (error) {
     // P2025 means record not found
-    if (error.code === 'P2025') {
+    if (error?.code === 'P2025') {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
     }
 
-    console.error('Error updating notification:', error);
-    return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to update notification');
   }
 }
 
@@ -38,11 +38,10 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     // P2025 means record not found - treat as success since the notification doesn't exist
-    if (error.code === 'P2025') {
+    if (error?.code === 'P2025') {
       return NextResponse.json({ message: 'Notification already deleted or does not exist' });
     }
 
-    console.error('Error deleting notification:', error);
-    return NextResponse.json({ error: 'Failed to delete notification' }, { status: 500 });
+    return createErrorResponse(error, 'Failed to delete notification');
   }
 }
