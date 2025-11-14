@@ -151,23 +151,35 @@ export async function GET(request) {
       firstTimeSetup: firstTimeSetup?.value === 'true',
     });
   } catch (error) {
-    logError('❌ Error fetching dashboard data', {
-      '🚨 Error Message': error.message,
-      '📋 Error Code': error.code || 'N/A',
-      '🔍 Error Name': error.name || 'N/A',
-      '📚 Stack Trace': error.stack,
-      '🔄 Retryable': error.retryable !== undefined ? error.retryable : 'undefined',
-      '🗄️ Meta': error.meta || 'N/A',
+    // Comprehensive error logging - capture ALL error properties
+    const errorDetails = {
+      '🚨 Error Type': typeof error,
+      '📝 Error ToString': String(error),
+      '🔍 Constructor': error?.constructor?.name || 'Unknown',
+      '📋 Message': error?.message || (typeof error === 'string' ? error : 'No message'),
+      '🔢 Code': error?.code !== undefined ? error.code : 'No code property',
+      '📛 Name': error?.name || 'No name',
+      '🔄 Retryable': error?.retryable !== undefined ? error.retryable : 'No retryable property',
+      '🗄️ Meta': error?.meta ? JSON.stringify(error.meta) : 'No meta',
+      '📍 Cause': error?.cause ? String(error.cause) : 'No cause',
+      '📚 Stack': error?.stack || 'No stack trace',
+      '🔧 Client Version': error?.clientVersion || 'No client version',
+      '📊 All Properties': JSON.stringify(Object.keys(error || {})),
+      '🔬 Full Error Object': JSON.stringify(error, Object.getOwnPropertyNames(error)),
       '👤 User Email': new URL(request.url).searchParams.get('userEmail') || 'none',
-    });
+    };
+
+    logError('❌ Error fetching dashboard data', errorDetails);
 
     // Return detailed error for debugging
     return NextResponse.json(
       {
         error: 'Failed to fetch dashboard data',
-        details: error.message,
-        code: error.code,
-        retryable: error.retryable,
+        details: error?.message || String(error),
+        errorType: error?.constructor?.name,
+        code: error?.code,
+        name: error?.name,
+        allKeys: Object.keys(error || {}),
       },
       { status: 500 }
     );

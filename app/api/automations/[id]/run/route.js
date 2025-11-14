@@ -385,10 +385,17 @@ export async function POST(request, { params }) {
         artifacts: artifacts,
       });
     } catch (awxError) {
-      // Log the AWX error
+      // Comprehensive error details
+      const errorMessage = awxError?.message || String(awxError) || 'Unknown AWX error';
+
+      // Log the AWX error with full details
       logAutomationFailure(automation.id, uniqueId, awxError, {
         phase: 'awx_execution',
-        templateId: automation.templateId
+        templateId: automation.templateId,
+        errorType: awxError?.constructor?.name,
+        errorCode: awxError?.code,
+        errorName: awxError?.name,
+        allErrorKeys: Object.keys(awxError || {}),
       });
 
       // Update run with failed status
@@ -396,7 +403,7 @@ export async function POST(request, { params }) {
         where: { id: run.id },
         data: {
           status: 'failed',
-          errorMessage: awxError.message,
+          errorMessage: errorMessage,
           completedAt: new Date(),
         },
       });
@@ -408,14 +415,15 @@ export async function POST(request, { params }) {
           entityType: 'automation',
           entityId: automation.id,
           entityName: automation.name,
-          description: `Failed to execute automation "${automation.name}" (${uniqueId}): ${awxError.message}`,
+          description: `Failed to execute automation "${automation.name}" (${uniqueId}): ${errorMessage}`,
           performedBy: body.user?.email || 'system',
           metadata: JSON.stringify({
             runId: run.id,
             uniqueId: uniqueId,
             parameters: parameters,
             status: 'failed',
-            error: awxError.message,
+            error: errorMessage,
+            errorType: awxError?.constructor?.name,
           }),
         },
       });
@@ -423,17 +431,36 @@ export async function POST(request, { params }) {
       return NextResponse.json(
         {
           error: 'Failed to execute automation',
-          details: awxError.message,
+          details: errorMessage,
+          errorType: awxError?.constructor?.name,
+          code: awxError?.code,
         },
         { status: 500 }
       );
     }
   } catch (error) {
-    logError('Unexpected error running automation', error);
+    // Comprehensive error logging
+    const errorDetails = {
+      '🚨 Error Type': typeof error,
+      '📝 Error ToString': String(error),
+      '🔍 Constructor': error?.constructor?.name || 'Unknown',
+      '📋 Message': error?.message || (typeof error === 'string' ? error : 'No message'),
+      '🔢 Code': error?.code !== undefined ? error.code : 'No code property',
+      '📛 Name': error?.name || 'No name',
+      '📚 Stack': error?.stack || 'No stack trace',
+      '📊 All Properties': JSON.stringify(Object.keys(error || {})),
+      '🔬 Full Error Object': JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    };
+
+    logError('Unexpected error running automation', errorDetails);
+
     return NextResponse.json(
       {
         error: 'Failed to run automation',
-        details: error.message || 'An unexpected error occurred'
+        details: error?.message || String(error) || 'An unexpected error occurred',
+        errorType: error?.constructor?.name,
+        code: error?.code,
+        allKeys: Object.keys(error || {}),
       },
       { status: 500 }
     );
