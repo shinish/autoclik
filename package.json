@@ -1,7 +1,7 @@
 {
-  "name": "automation-platform",
+  "name": "autoclik",
   "version": "1.0.0",
-  "description": "",
+  "description": "Automation platform with Ansible AWX integration for executing runbooks and managing IT automation workflows",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
@@ -12,10 +12,21 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
-    "db:reset": "node -e \"const fs = require('fs'); ['prisma/dev.db', 'prisma/dev.db-journal'].forEach(f => { try { fs.unlinkSync(f); console.log('Deleted', f); } catch(e) {} })\" && npx prisma db push --skip-generate && npm run prisma:seed"
+    "db:reset": "node scripts/reset-database.js && npx prisma db push --skip-generate && npm run prisma:seed",
+    "db:reset:win": "node scripts/reset-database.js && npx prisma db push --skip-generate && npm run prisma:seed",
+    "setup": "npm install && npx prisma generate && npm run db:reset",
+    "setup:win": "npm install && npx prisma generate && npm run db:reset:win",
+    "clean": "node scripts/clean.js",
+    "postinstall": "prisma generate"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "automation",
+    "awx",
+    "ansible",
+    "runbooks",
+    "workflow"
+  ],
+  "author": "Shinish Sasidharan",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.18.0",
@@ -28,6 +39,7 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.552.0",
     "next": "^16.0.1",
+    "nodemailer": "^7.0.10",
     "prisma": "^6.18.0",
     "react": "^19.2.0",
     "react-dnd": "^16.0.1",
@@ -38,5 +50,9 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18"
+  },
+  "overrides": {
+    "glob": "^11.0.0",
+    "rimraf": "^6.0.0"
   }
 }
