@@ -176,7 +176,7 @@ export default function SchedulesPage() {
               border: '1px solid var(--border)',
               backgroundColor: 'var(--surface)',
               color: 'var(--text)',
-              focusRing: 'var(--fis-green)'
+              focusRing: 'var(--accent)'
             }}
           />
         </div>
@@ -314,7 +314,7 @@ export default function SchedulesPage() {
                     border: '1px solid var(--border)',
                     backgroundColor: 'var(--bg)',
                     color: 'var(--text)',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
               </div>
@@ -331,7 +331,7 @@ export default function SchedulesPage() {
                     border: '1px solid var(--border)',
                     backgroundColor: 'var(--bg)',
                     color: 'var(--text)',
-                    focusRing: 'var(--fis-green)',
+                    focusRing: 'var(--accent)',
                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                     backgroundPosition: 'right 0.5rem center',
                     backgroundRepeat: 'no-repeat',
@@ -362,7 +362,7 @@ export default function SchedulesPage() {
                     border: '1px solid var(--border)',
                     backgroundColor: 'var(--bg)',
                     color: 'var(--text)',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
               </div>
@@ -381,7 +381,7 @@ export default function SchedulesPage() {
                     border: '1px solid var(--border)',
                     backgroundColor: 'var(--bg)',
                     color: 'var(--text)',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
                 <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>Use cron syntax (minute hour day month weekday)</p>
@@ -393,23 +393,23 @@ export default function SchedulesPage() {
                 <h3 className="text-sm font-light mb-3" style={{ color: 'var(--text)' }}>Common Cron Patterns</h3>
                 <div className="space-y-2 text-xs" style={{ color: 'var(--muted)' }}>
                   <div className="flex justify-between">
-                    <code className="font-mono" style={{ color: '#4C12A1' }}>0 * * * *</code>
+                    <code className="font-mono" style={{ color: 'var(--primary)' }}>0 * * * *</code>
                     <span>Every hour at minute 0</span>
                   </div>
                   <div className="flex justify-between">
-                    <code className="font-mono" style={{ color: '#4C12A1' }}>0 0 * * *</code>
+                    <code className="font-mono" style={{ color: 'var(--primary)' }}>0 0 * * *</code>
                     <span>Daily at midnight (12:00 AM)</span>
                   </div>
                   <div className="flex justify-between">
-                    <code className="font-mono" style={{ color: '#4C12A1' }}>0 9 * * 1-5</code>
+                    <code className="font-mono" style={{ color: 'var(--primary)' }}>0 9 * * 1-5</code>
                     <span>Weekdays at 9:00 AM</span>
                   </div>
                   <div className="flex justify-between">
-                    <code className="font-mono" style={{ color: '#4C12A1' }}>*/15 * * * *</code>
+                    <code className="font-mono" style={{ color: 'var(--primary)' }}>*/15 * * * *</code>
                     <span>Every 15 minutes</span>
                   </div>
                   <div className="flex justify-between">
-                    <code className="font-mono" style={{ color: '#4C12A1' }}>0 0 1 * *</code>
+                    <code className="font-mono" style={{ color: 'var(--primary)' }}>0 0 1 * *</code>
                     <span>First day of month at midnight</span>
                   </div>
                 </div>

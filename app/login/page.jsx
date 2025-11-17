@@ -191,7 +191,7 @@ export default function LoginPage() {
                       checked={formData.rememberMe}
                       onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
                       className="h-4 w-4 rounded border-gray-300 transition"
-                      style={{ accentColor: 'var(--fis-green)' }}
+                      style={{ accentColor: 'var(--accent)' }}
                     />
                     <label
                       htmlFor="remember-me"
@@ -205,7 +205,7 @@ export default function LoginPage() {
                     <a
                       href="#"
                       className="font-medium hover:opacity-80 transition-opacity"
-                      style={{ color: 'var(--fis-green)' }}
+                      style={{ color: 'var(--accent)' }}
                     >
                       Forgot Password?
                     </a>
@@ -219,8 +219,8 @@ export default function LoginPage() {
                     disabled={loading}
                     className="flex w-full items-center justify-center rounded-lg border border-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
                     style={{
-                      backgroundColor: 'var(--fis-green)',
-                      focusRing: 'var(--fis-green)'
+                      backgroundColor: 'var(--accent)',
+                      focusRing: 'var(--accent)'
                     }}
                   >
                     {loading ? 'Signing in...' : 'Sign In'}
@@ -237,7 +237,7 @@ export default function LoginPage() {
                 <a
                   href="#"
                   className="font-semibold hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--fis-green)' }}
+                  style={{ color: 'var(--accent)' }}
                 >
                   Sign Up
                 </a>

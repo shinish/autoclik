@@ -24,6 +24,10 @@ export default function SettingsPage() {
   const [tempAwxToken, setTempAwxToken] = useState('');
   const [showAwxToken, setShowAwxToken] = useState(false);
   const [showEmailPassword, setShowEmailPassword] = useState(false);
+  const [awxTestStatus, setAwxTestStatus] = useState(null); // null, 'testing', 'success', 'error'
+  const [awxTestMessage, setAwxTestMessage] = useState('');
+  const [proxyTestStatus, setProxyTestStatus] = useState(null); // null, 'testing', 'success', 'error'
+  const [proxyTestMessage, setProxyTestMessage] = useState('');
   const [proxyEnabled, setProxyEnabled] = useState(false);
   const [proxyUrl, setProxyUrl] = useState('');
   const [proxyPort, setProxyPort] = useState('');
@@ -31,6 +35,10 @@ export default function SettingsPage() {
   const [tempProxyEnabled, setTempProxyEnabled] = useState(false);
   const [tempProxyUrl, setTempProxyUrl] = useState('');
   const [tempProxyPort, setTempProxyPort] = useState('');
+  const [tempProxyAuthEnabled, setTempProxyAuthEnabled] = useState(false);
+  const [tempProxyUsername, setTempProxyUsername] = useState('');
+  const [tempProxyPassword, setTempProxyPassword] = useState('');
+  const [showProxyPassword, setShowProxyPassword] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('');
@@ -205,6 +213,112 @@ export default function SettingsPage() {
     setIsEditingAwxToken(false);
   };
 
+  const testAwxConnection = async () => {
+    setAwxTestStatus('testing');
+    setAwxTestMessage('Testing connection...');
+
+    try {
+      // Use current values (baseUrl and awxToken)
+      const testUrl = baseUrl || tempBaseUrl;
+      const testToken = awxToken || tempAwxToken;
+
+      if (!testUrl) {
+        setAwxTestStatus('error');
+        setAwxTestMessage('Base URL is required');
+        return;
+      }
+
+      if (!testToken) {
+        setAwxTestStatus('error');
+        setAwxTestMessage('AWX Token is required');
+        return;
+      }
+
+      // Test the connection by calling AWX ping endpoint
+      const response = await fetch('/api/awx/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baseUrl: testUrl,
+          token: testToken
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setAwxTestStatus('success');
+        setAwxTestMessage(`Connected successfully! AWX version: ${data.version || 'Unknown'}`);
+      } else {
+        setAwxTestStatus('error');
+        setAwxTestMessage(data.message || 'Connection failed');
+      }
+    } catch (error) {
+      setAwxTestStatus('error');
+      setAwxTestMessage(`Connection error: ${error.message}`);
+    }
+
+    // Clear status after 5 seconds
+    setTimeout(() => {
+      setAwxTestStatus(null);
+      setAwxTestMessage('');
+    }, 5000);
+  };
+
+  const testProxyConnection = async () => {
+    setProxyTestStatus('testing');
+    setProxyTestMessage('Testing proxy connection...');
+
+    try {
+      const testUrl = tempProxyUrl || proxyUrl;
+      const testPort = tempProxyPort || proxyPort;
+
+      if (!testUrl) {
+        setProxyTestStatus('error');
+        setProxyTestMessage('Proxy URL is required');
+        return;
+      }
+
+      if (!testPort) {
+        setProxyTestStatus('error');
+        setProxyTestMessage('Proxy Port is required');
+        return;
+      }
+
+      // Test if proxy is reachable by making a test request
+      const response = await fetch('/api/proxy/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proxyUrl: testUrl,
+          proxyPort: testPort,
+          proxyAuthEnabled: tempProxyAuthEnabled,
+          proxyUsername: tempProxyUsername,
+          proxyPassword: tempProxyPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setProxyTestStatus('success');
+        setProxyTestMessage('Proxy is reachable and working correctly');
+      } else {
+        setProxyTestStatus('error');
+        setProxyTestMessage(data.message || 'Proxy connection failed');
+      }
+    } catch (error) {
+      setProxyTestStatus('error');
+      setProxyTestMessage(`Connection error: ${error.message}`);
+    }
+
+    // Clear status after 5 seconds
+    setTimeout(() => {
+      setProxyTestStatus(null);
+      setProxyTestMessage('');
+    }, 5000);
+  };
+
   const fetchProxySettings = async () => {
     try {
       const [enabledRes, urlRes, portRes] = await Promise.all([
@@ -266,6 +380,33 @@ export default function SettingsPage() {
             description: 'Proxy server port',
           }),
         }),
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'proxy_auth_enabled',
+            value: String(tempProxyAuthEnabled),
+            description: 'Enable proxy authentication',
+          }),
+        }),
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'proxy_username',
+            value: tempProxyUsername,
+            description: 'Proxy authentication username',
+          }),
+        }),
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'proxy_password',
+            value: tempProxyPassword,
+            description: 'Proxy authentication password',
+          }),
+        }),
       ]);
 
       setProxyEnabled(tempProxyEnabled);
@@ -281,6 +422,10 @@ export default function SettingsPage() {
     setTempProxyEnabled(proxyEnabled);
     setTempProxyUrl(proxyUrl);
     setTempProxyPort(proxyPort);
+    setTempProxyAuthEnabled(false);
+    setTempProxyUsername('');
+    setTempProxyPassword('');
+    setShowProxyPassword(false);
     setIsEditingProxy(false);
   };
 
@@ -862,8 +1007,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab('general')}
             className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80`}
             style={{
-              borderColor: activeTab === 'general' ? 'var(--fis-green)' : 'transparent',
-              color: activeTab === 'general' ? 'var(--fis-green)' : 'var(--muted)'
+              borderColor: activeTab === 'general' ? 'var(--accent)' : 'transparent',
+              color: activeTab === 'general' ? 'var(--accent)' : 'var(--muted)'
             }}
           >
             General
@@ -874,8 +1019,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('namespaces')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80`}
                 style={{
-                  borderColor: activeTab === 'namespaces' ? 'var(--fis-green)' : 'transparent',
-                  color: activeTab === 'namespaces' ? 'var(--fis-green)' : 'var(--muted)'
+                  borderColor: activeTab === 'namespaces' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'namespaces' ? 'var(--accent)' : 'var(--muted)'
                 }}
               >
                 Namespaces
@@ -884,8 +1029,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('users')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80`}
                 style={{
-                  borderColor: activeTab === 'users' ? 'var(--fis-green)' : 'transparent',
-                  color: activeTab === 'users' ? 'var(--fis-green)' : 'var(--muted)'
+                  borderColor: activeTab === 'users' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'users' ? 'var(--accent)' : 'var(--muted)'
                 }}
               >
                 Users
@@ -894,8 +1039,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('groups')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80`}
                 style={{
-                  borderColor: activeTab === 'groups' ? 'var(--fis-green)' : 'transparent',
-                  color: activeTab === 'groups' ? 'var(--fis-green)' : 'var(--muted)'
+                  borderColor: activeTab === 'groups' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'groups' ? 'var(--accent)' : 'var(--muted)'
                 }}
               >
                 Groups
@@ -904,8 +1049,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('credentials')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80`}
                 style={{
-                  borderColor: activeTab === 'credentials' ? 'var(--fis-green)' : 'transparent',
-                  color: activeTab === 'credentials' ? 'var(--fis-green)' : 'var(--muted)'
+                  borderColor: activeTab === 'credentials' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'credentials' ? 'var(--accent)' : 'var(--muted)'
                 }}
               >
                 Credentials
@@ -914,8 +1059,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('logs')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80 flex items-center gap-2`}
                 style={{
-                  borderColor: activeTab === 'logs' ? 'var(--fis-green)' : 'transparent',
-                  color: activeTab === 'logs' ? 'var(--fis-green)' : 'var(--muted)'
+                  borderColor: activeTab === 'logs' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'logs' ? 'var(--accent)' : 'var(--muted)'
                 }}
               >
                 <FileText className="h-4 w-4" />
@@ -1049,6 +1194,52 @@ export default function SettingsPage() {
               </div>
             )}
             </div>
+
+            {/* AWX Connection Test */}
+            <div className="py-6" style={{ borderBottom: '1px solid var(--border)' }}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>Test AWX Connection</h3>
+                  <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                    Verify AWX server connectivity and authentication
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={testAwxConnection}
+                  disabled={awxTestStatus === 'testing' || (!baseUrl && !tempBaseUrl) || (!awxToken && !tempAwxToken)}
+                >
+                  {awxTestStatus === 'testing' ? 'Testing...' : 'Test Connection'}
+                </Button>
+
+                {/* Test Status Message */}
+                {awxTestMessage && (
+                  <div
+                    className="rounded-lg px-4 py-3 text-sm flex items-start gap-3"
+                    style={{
+                      backgroundColor: awxTestStatus === 'success' ? '#e6f7ed' : awxTestStatus === 'error' ? '#fef2f2' : 'var(--bg)',
+                      border: `1px solid ${awxTestStatus === 'success' ? '#00A859' : awxTestStatus === 'error' ? '#dc2626' : 'var(--border)'}`,
+                      color: awxTestStatus === 'success' ? '#065f46' : awxTestStatus === 'error' ? '#991b1b' : 'var(--text)'
+                    }}
+                  >
+                    {awxTestStatus === 'success' && (
+                      <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    {awxTestStatus === 'error' && (
+                      <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <span>{awxTestMessage}</span>
+                  </div>
+                )}
+              </div>
+            </div>
             </>
             )}
 
@@ -1131,6 +1322,125 @@ export default function SettingsPage() {
                   />
                 </div>
 
+                {/* Proxy Authentication Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)', opacity: !tempProxyEnabled ? 0.5 : 1 }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Proxy Authentication</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                      Enable if proxy requires username and password
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempProxyAuthEnabled}
+                      onChange={(e) => setTempProxyAuthEnabled(e.target.checked)}
+                      disabled={!tempProxyEnabled}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-indigo-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                  </label>
+                </div>
+
+                {/* Proxy Username */}
+                {tempProxyAuthEnabled && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Proxy Username
+                    </label>
+                    <input
+                      type="text"
+                      value={tempProxyUsername}
+                      onChange={(e) => setTempProxyUsername(e.target.value)}
+                      placeholder="Enter proxy username"
+                      disabled={!tempProxyEnabled}
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: '#00A859'
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Proxy Password */}
+                {tempProxyAuthEnabled && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Proxy Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showProxyPassword ? "text" : "password"}
+                        value={tempProxyPassword}
+                        onChange={(e) => setTempProxyPassword(e.target.value)}
+                        placeholder="Enter proxy password"
+                        disabled={!tempProxyEnabled}
+                        className="w-full rounded-lg px-4 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--bg)',
+                          color: 'var(--text)',
+                          focusRing: '#00A859'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowProxyPassword(!showProxyPassword)}
+                        disabled={!tempProxyEnabled}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:opacity-70 transition-opacity disabled:opacity-30"
+                        style={{ color: 'var(--muted)' }}
+                        title={showProxyPassword ? "Hide password" : "Show password"}
+                      >
+                        {showProxyPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Proxy Button */}
+                {tempProxyEnabled && tempProxyUrl && tempProxyPort && (
+                  <div className="space-y-4">
+                    <Button
+                      variant="outline"
+                      onClick={testProxyConnection}
+                      disabled={proxyTestStatus === 'testing'}
+                    >
+                      {proxyTestStatus === 'testing' ? 'Testing...' : 'Test Proxy Connection'}
+                    </Button>
+
+                    {/* Test Status Message */}
+                    {proxyTestMessage && (
+                      <div
+                        className="rounded-lg px-4 py-3 text-sm flex items-start gap-3"
+                        style={{
+                          backgroundColor: proxyTestStatus === 'success' ? '#e6f7ed' : proxyTestStatus === 'error' ? '#fef2f2' : 'var(--bg)',
+                          border: `1px solid ${proxyTestStatus === 'success' ? '#00A859' : proxyTestStatus === 'error' ? '#dc2626' : 'var(--border)'}`,
+                          color: proxyTestStatus === 'success' ? '#065f46' : proxyTestStatus === 'error' ? '#991b1b' : 'var(--text)'
+                        }}
+                      >
+                        {proxyTestStatus === 'success' && (
+                          <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {proxyTestStatus === 'error' && (
+                          <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        <span>{proxyTestMessage}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <Button variant="primary" onClick={handleSaveProxy}>
                     Save
@@ -1148,7 +1458,7 @@ export default function SettingsPage() {
                     className="px-3 py-1 text-xs font-semibold rounded-full"
                     style={{
                       backgroundColor: proxyEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                      color: proxyEnabled ? '#22c55e' : '#6b7280'
+                      color: proxyEnabled ? 'var(--success)' : '#6b7280'
                     }}
                   >
                     {proxyEnabled ? 'Enabled' : 'Disabled'}
@@ -1349,7 +1659,7 @@ export default function SettingsPage() {
                     className="px-3 py-1 text-xs font-semibold rounded-full"
                     style={{
                       backgroundColor: emailEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                      color: emailEnabled ? '#22c55e' : '#6b7280'
+                      color: emailEnabled ? 'var(--success)' : '#6b7280'
                     }}
                   >
                     {emailEnabled ? 'Enabled' : 'Disabled'}
@@ -1404,7 +1714,7 @@ export default function SettingsPage() {
                 <div>
                   <h4 className="text-sm font-light mb-1" style={{ color: '#1e40af' }}>Configuration Priority</h4>
                   <p className="text-xs" style={{ color: '#1e40af' }}>
-                    Settings saved here will be used for all catalog items. If AWX is not configured, the system will run in demo mode and simulate executions.
+                    Settings saved here will be used for all catalog items. AWX Base URL and Token must be configured for automations to execute.
                     You can also override these settings per catalog item by specifying an API endpoint. Email notifications will be sent when enabled.
                   </p>
                 </div>
@@ -1436,7 +1746,7 @@ export default function SettingsPage() {
                     backgroundColor: 'var(--surface)',
                     color: 'var(--text)',
                     minWidth: '250px',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
               </div>
@@ -1509,7 +1819,7 @@ export default function SettingsPage() {
                           className="p-2 rounded-lg transition-all hover:scale-110"
                           style={{
                             backgroundColor: 'var(--bg)',
-                            color: 'var(--fis-green)'
+                            color: 'var(--accent)'
                           }}
                           title="Manage Permissions"
                         >
@@ -1556,7 +1866,7 @@ export default function SettingsPage() {
                     backgroundColor: 'var(--surface)',
                     color: 'var(--text)',
                     minWidth: '250px',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
               </div>
@@ -1627,7 +1937,7 @@ export default function SettingsPage() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)' }}>
-                                <User className="h-4 w-4" style={{ color: '#4C12A1' }} />
+                                <User className="h-4 w-4" style={{ color: 'var(--primary)' }} />
                               </div>
                               <div>
                                 <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -1772,8 +2082,8 @@ export default function SettingsPage() {
                               onClick={() => setUserCurrentPage(pageNum)}
                               className="px-3 py-2 rounded-lg transition-all min-w-[40px]"
                               style={{
-                                backgroundColor: userCurrentPage === pageNum ? '#4C12A1' : 'var(--surface)',
-                                border: `1px solid ${userCurrentPage === pageNum ? '#4C12A1' : 'var(--border)'}`,
+                                backgroundColor: userCurrentPage === pageNum ? 'var(--primary)' : 'var(--surface)',
+                                border: `1px solid ${userCurrentPage === pageNum ? 'var(--primary)' : 'var(--border)'}`,
                                 color: userCurrentPage === pageNum ? 'white' : 'var(--text)',
                                 fontWeight: userCurrentPage === pageNum ? '600' : '400'
                               }}
@@ -1825,7 +2135,7 @@ export default function SettingsPage() {
                     backgroundColor: 'var(--surface)',
                     color: 'var(--text)',
                     minWidth: '250px',
-                    focusRing: 'var(--fis-green)'
+                    focusRing: 'var(--accent)'
                   }}
                 />
               </div>
@@ -2049,7 +2359,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2067,7 +2377,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2085,7 +2395,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2119,7 +2429,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2139,7 +2449,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2159,7 +2469,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2179,7 +2489,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2197,7 +2507,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2215,7 +2525,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2242,7 +2552,7 @@ export default function SettingsPage() {
                           border: '1px solid var(--border)',
                           backgroundColor: 'var(--bg)',
                           color: 'var(--text)',
-                          focusRing: 'var(--fis-green)'
+                          focusRing: 'var(--accent)'
                         }}
                       />
                       <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--muted)' }} />
@@ -2343,7 +2653,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)',
+                        focusRing: 'var(--accent)',
                         backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                         backgroundPosition: 'right 0.5rem center',
                         backgroundRepeat: 'no-repeat',
@@ -2373,7 +2683,7 @@ export default function SettingsPage() {
                             border: '1px solid var(--border)',
                             backgroundColor: 'var(--bg)',
                             color: 'var(--text)',
-                            focusRing: 'var(--fis-green)'
+                            focusRing: 'var(--accent)'
                           }}
                         />
                         <button
@@ -2389,7 +2699,7 @@ export default function SettingsPage() {
                             setFormData({ ...formData, password });
                           }}
                           className="px-4 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
-                          style={{ backgroundColor: 'var(--fis-green)', color: 'white' }}
+                          style={{ backgroundColor: 'var(--accent)', color: 'white' }}
                         >
                           Generate
                         </button>
@@ -2447,7 +2757,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2467,7 +2777,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2561,7 +2871,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2581,7 +2891,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2613,7 +2923,7 @@ export default function SettingsPage() {
                             border: '1px solid var(--border)',
                             backgroundColor: 'var(--bg)',
                             color: 'var(--text)',
-                            focusRing: 'var(--fis-green)',
+                            focusRing: 'var(--accent)',
                             backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                             backgroundPosition: 'right 0.5rem center',
                             backgroundRepeat: 'no-repeat',
@@ -2761,7 +3071,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2777,7 +3087,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -2793,7 +3103,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)',
+                        focusRing: 'var(--accent)',
                         backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                         backgroundPosition: 'right 0.5rem center',
                         backgroundRepeat: 'no-repeat',
@@ -2820,7 +3130,7 @@ export default function SettingsPage() {
                           border: '1px solid var(--border)',
                           backgroundColor: 'var(--bg)',
                           color: 'var(--text)',
-                          focusRing: 'var(--fis-green)'
+                          focusRing: 'var(--accent)'
                         }}
                       />
                     </div>
@@ -2840,7 +3150,7 @@ export default function SettingsPage() {
                           border: '1px solid var(--border)',
                           backgroundColor: 'var(--bg)',
                           color: 'var(--text)',
-                          focusRing: 'var(--fis-green)'
+                          focusRing: 'var(--accent)'
                         }}
                       />
                       <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
@@ -2861,7 +3171,7 @@ export default function SettingsPage() {
                           border: '1px solid var(--border)',
                           backgroundColor: 'var(--bg)',
                           color: 'var(--text)',
-                          focusRing: 'var(--fis-green)'
+                          focusRing: 'var(--accent)'
                         }}
                       />
                     </div>
@@ -2892,7 +3202,7 @@ export default function SettingsPage() {
                           border: '1px solid var(--border)',
                           backgroundColor: 'var(--bg)',
                           color: 'var(--text)',
-                          focusRing: 'var(--fis-green)'
+                          focusRing: 'var(--accent)'
                         }}
                       />
                       <button
@@ -2908,7 +3218,7 @@ export default function SettingsPage() {
                           setFormData({ ...formData, password });
                         }}
                         className="px-4 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
-                        style={{ backgroundColor: 'var(--fis-green)', color: 'white' }}
+                        style={{ backgroundColor: 'var(--accent)', color: 'white' }}
                       >
                         Suggest Password
                       </button>
@@ -2932,7 +3242,7 @@ export default function SettingsPage() {
                         border: '1px solid var(--border)',
                         backgroundColor: 'var(--bg)',
                         color: 'var(--text)',
-                        focusRing: 'var(--fis-green)'
+                        focusRing: 'var(--accent)'
                       }}
                     />
                   </div>
@@ -3312,7 +3622,7 @@ function LogsTabContent({
       case 'INFO':
         return <Info className="h-5 w-5" style={{ color: '#3b82f6' }} />;
       default:
-        return <Info className="h-5 w-5" style={{ color: '#10b981' }} />;
+        return <Info className="h-5 w-5" style={{ color: 'var(--success)' }} />;
     }
   };
 
@@ -3325,7 +3635,7 @@ function LogsTabContent({
       case 'INFO':
         return { bg: 'rgba(59, 130, 246, 0.1)', border: '#3b82f6', text: '#2563eb' };
       default:
-        return { bg: 'rgba(16, 185, 129, 0.1)', border: '#10b981', text: '#059669' };
+        return { bg: 'rgba(16, 185, 129, 0.1)', border: 'var(--success)', text: '#059669' };
     }
   };
 
@@ -3337,7 +3647,7 @@ function LogsTabContent({
   if (logsLoading && logs.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="h-8 w-8 animate-spin" style={{ color: 'var(--fis-green)' }} />
+        <RefreshCw className="h-8 w-8 animate-spin" style={{ color: 'var(--accent)' }} />
       </div>
     );
   }
@@ -3365,7 +3675,7 @@ function LogsTabContent({
                 onClick={() => setLogFilter(level)}
                 className="px-4 py-2 rounded-lg transition-all text-sm"
                 style={{
-                  backgroundColor: logFilter === level ? 'var(--fis-green)' : 'var(--surface)',
+                  backgroundColor: logFilter === level ? 'var(--accent)' : 'var(--surface)',
                   color: logFilter === level ? 'white' : 'var(--text)',
                   border: '1px solid var(--border)',
                 }}
@@ -3384,7 +3694,7 @@ function LogsTabContent({
             onClick={() => setLogsAutoRefresh(!logsAutoRefresh)}
             className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all text-sm"
             style={{
-              backgroundColor: logsAutoRefresh ? 'var(--fis-green)' : 'var(--surface)',
+              backgroundColor: logsAutoRefresh ? 'var(--accent)' : 'var(--surface)',
               color: logsAutoRefresh ? 'white' : 'var(--text)',
               border: '1px solid var(--border)',
             }}

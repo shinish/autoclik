@@ -11,6 +11,7 @@ export default function NewAutomationPage() {
   const [step, setStep] = useState(1);
   const [toast, setToast] = useState(null);
   const [namespaces, setNamespaces] = useState([]);
+  const [instanceGroups, setInstanceGroups] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     namespace: '',
@@ -22,6 +23,7 @@ export default function NewAutomationPage() {
     customBody: '',
     templateId: '',
     inventoryId: '',
+    instanceGroupId: '',
     pinned: false,
     featured: false,
   });
@@ -260,6 +262,7 @@ export default function NewAutomationPage() {
   useEffect(() => {
     fetchNamespaces();
     fetchSavedTags();
+    fetchInstanceGroups();
   }, []);
 
   const fetchNamespaces = async () => {
@@ -282,6 +285,21 @@ export default function NewAutomationPage() {
       setSavedTags(data);
     } catch (error) {
       console.error('Error fetching tags:', error);
+    }
+  };
+
+  const fetchInstanceGroups = async () => {
+    try {
+      const res = await fetch('/api/instance-groups');
+      const data = await res.json();
+      setInstanceGroups(data);
+      // Set default instance group if available
+      if (data.length > 0) {
+        const defaultGroup = data.find(g => g.name === 'default') || data[0];
+        setFormData((prev) => ({ ...prev, instanceGroupId: defaultGroup.id }));
+      }
+    } catch (error) {
+      console.error('Error fetching instance groups:', error);
     }
   };
 
@@ -475,6 +493,7 @@ export default function NewAutomationPage() {
       tags: JSON.stringify(formData.tags),
       templateId: formData.templateId,
       inventoryId: formData.inventoryId || null,
+      instanceGroupId: formData.instanceGroupId || null,
       pinned: formData.pinned,
       featured: formData.featured,
     };
@@ -640,7 +659,7 @@ export default function NewAutomationPage() {
               <div
                 className="h-1.5 rounded-full transition-colors"
                 style={{
-                  backgroundColor: s.num <= step ? '#4C12A1' : 'var(--border)'
+                  backgroundColor: s.num <= step ? 'var(--primary)' : 'var(--border)'
                 }}
               />
             </div>
@@ -656,11 +675,11 @@ export default function NewAutomationPage() {
         <h1 className="text-3xl font-bold" style={{ color: 'var(--text)' }}>Add New Catalog Item</h1>
       </div>
 
-      <div className="rounded-lg p-6 max-h-[calc(100vh-140px)] flex flex-col" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+      <div className="rounded-lg p-6 flex flex-col h-[calc(100vh-180px)]" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
         {renderStepIndicator()}
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2">
           {/* Step 1: Main Details */}
           {step === 1 && (
             <div className="space-y-6">
@@ -681,7 +700,7 @@ export default function NewAutomationPage() {
                   border: errors.name ? '1px solid #ef4444' : '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
                   color: 'var(--text)',
-                  focusRing: '#4C12A1'
+                  focusRing: 'var(--primary)'
                 }}
                 autoComplete="off"
               />
@@ -730,7 +749,7 @@ export default function NewAutomationPage() {
                   border: errors.namespace ? '1px solid #ef4444' : '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
                   color: 'var(--text)',
-                  focusRing: '#4C12A1',
+                  focusRing: 'var(--primary)',
                   backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                   backgroundPosition: 'right 0.5rem center',
                   backgroundRepeat: 'no-repeat',
@@ -755,7 +774,7 @@ export default function NewAutomationPage() {
                   <button
                     onClick={() => router.push('/settings')}
                     className="font-medium hover:opacity-80"
-                    style={{ color: '#4C12A1' }}
+                    style={{ color: 'var(--primary)' }}
                   >
                     Settings
                   </button>
@@ -776,7 +795,7 @@ export default function NewAutomationPage() {
                   border: '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
                   color: 'var(--text)',
-                  focusRing: 'var(--fis-green)'
+                  focusRing: 'var(--accent)'
                 }}
               />
             </div>
@@ -828,13 +847,13 @@ export default function NewAutomationPage() {
                   <span
                     key={tag}
                     className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm"
-                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                   >
                     {tag}
                     <button
                       onClick={() => removeTag(tag)}
                       className="hover:opacity-70"
-                      style={{ color: '#4C12A1' }}
+                      style={{ color: 'var(--primary)' }}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -874,7 +893,7 @@ export default function NewAutomationPage() {
                         className="inline-flex items-center rounded px-2 py-1 text-xs hover:opacity-80 transition-opacity"
                         style={{
                           backgroundColor: 'rgba(76, 18, 161, 0.05)',
-                          color: '#4C12A1',
+                          color: 'var(--primary)',
                           border: '1px solid rgba(76, 18, 161, 0.2)'
                         }}
                       >
@@ -905,7 +924,7 @@ export default function NewAutomationPage() {
                         customBody: '' // Clear JSON body when switching to form mode
                       })}
                       className="h-4 w-4"
-                      style={{ accentColor: '#4C12A1' }}
+                      style={{ accentColor: 'var(--primary)' }}
                     />
                     <div>
                       <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -929,7 +948,7 @@ export default function NewAutomationPage() {
                         formSchema: [] // Clear form schema when switching to JSON mode
                       })}
                       className="h-4 w-4"
-                      style={{ accentColor: '#4C12A1' }}
+                      style={{ accentColor: 'var(--primary)' }}
                     />
                     <div>
                       <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -962,7 +981,7 @@ export default function NewAutomationPage() {
                     checked={formData.pinned}
                     onChange={(e) => setFormData({ ...formData, pinned: e.target.checked })}
                     className="h-4 w-4 rounded border-gray-300 transition"
-                    style={{ accentColor: '#4C12A1' }}
+                    style={{ accentColor: 'var(--primary)' }}
                   />
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -981,7 +1000,7 @@ export default function NewAutomationPage() {
                     checked={formData.featured}
                     onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
                     className="h-4 w-4 rounded border-gray-300 transition"
-                    style={{ accentColor: '#4C12A1' }}
+                    style={{ accentColor: 'var(--primary)' }}
                   />
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -1022,7 +1041,7 @@ export default function NewAutomationPage() {
                   border: errors.customBody ? '1px solid #ef4444' : '1px solid var(--border)',
                   backgroundColor: 'rgba(0, 0, 0, 0.05)',
                   color: 'var(--text)',
-                  focusRing: '#4C12A1'
+                  focusRing: 'var(--primary)'
                 }}
               />
               {errors.customBody && (
@@ -1153,7 +1172,7 @@ export default function NewAutomationPage() {
                       onClick={() => setSelectedFieldIndex(index)}
                       className="space-y-2 p-4 rounded-lg cursor-pointer transition-all"
                       style={{
-                        border: selectedFieldIndex === index ? '2px solid #4C12A1' : '2px solid transparent',
+                        border: selectedFieldIndex === index ? '2px solid var(--primary)' : '2px solid transparent',
                         backgroundColor: selectedFieldIndex === index ? 'rgba(76, 18, 161, 0.05)' : 'transparent'
                       }}
                     >
@@ -1162,7 +1181,7 @@ export default function NewAutomationPage() {
                           {field.label || 'Untitled Field'}
                           {field.required && <span className="text-red-500">*</span>}
                           {field.predefinedValue && (
-                            <span className="px-2 py-0.5 text-xs rounded" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}>
+                            <span className="px-2 py-0.5 text-xs rounded" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}>
                               Auto
                             </span>
                           )}
@@ -1448,7 +1467,7 @@ export default function NewAutomationPage() {
                               onChange={(e) => updateFieldProperty(selectedFieldIndex, 'required', e.target.checked)}
                               className="sr-only peer"
                             />
-                            <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: formData.formSchema[selectedFieldIndex]?.required ? '#4C12A1' : 'var(--border)' }}></div>
+                            <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: formData.formSchema[selectedFieldIndex]?.required ? 'var(--primary)' : 'var(--border)' }}></div>
                           </label>
                         </div>
                       </div>
@@ -1470,7 +1489,7 @@ export default function NewAutomationPage() {
                   type="button"
                   onClick={() => router.push('/settings')}
                   className="font-medium hover:opacity-80"
-                  style={{ color: '#4C12A1' }}
+                  style={{ color: 'var(--primary)' }}
                 >
                   Settings
                 </button>
@@ -1494,7 +1513,7 @@ export default function NewAutomationPage() {
                   border: errors.templateId ? '1px solid #ef4444' : '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
                   color: 'var(--text)',
-                  focusRing: 'var(--fis-green)'
+                  focusRing: 'var(--accent)'
                 }}
               />
               {errors.templateId && (
@@ -1515,9 +1534,119 @@ export default function NewAutomationPage() {
                   border: '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
                   color: 'var(--text)',
-                  focusRing: 'var(--fis-green)'
+                  focusRing: 'var(--accent)'
                 }}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                Instance Group<span className="text-red-500">*</span>
+              </label>
+              <select
+                name="instanceGroupId"
+                value={formData.instanceGroupId}
+                onChange={handleInputChange}
+                className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--text)',
+                  focusRing: 'var(--accent)'
+                }}
+                required
+              >
+                <option value="">Select instance group</option>
+                {instanceGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} {group.description && `- ${group.description}`}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                Select which instance group should execute this automation
+              </p>
+            </div>
+
+            {/* Extra Vars Section */}
+            <div className="mt-6 rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                    Extra Variables for Playbook
+                  </h3>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                    Add form fields that will be passed as extra_vars to AWX (e.g., server_name, emailid, ritm)
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addFormField('text')}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Field
+                </Button>
+              </div>
+
+              {formData.formSchema.length === 0 ? (
+                <div className="text-center py-8" style={{ color: 'var(--muted)' }}>
+                  <p className="text-sm">No extra vars fields added yet.</p>
+                  <p className="text-xs mt-2">Click "Add Field" to create form fields for your playbook variables.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formData.formSchema.map((field, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg p-3 flex items-center justify-between"
+                      style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                            {field.label || 'Untitled Field'}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--border)', color: 'var(--muted)' }}>
+                            {field.type}
+                          </span>
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                          Key: <code className="px-1 rounded" style={{ backgroundColor: 'var(--border)' }}>{field.key || 'not set'}</code>
+                          {field.required && <span className="ml-2 text-red-500">Required</span>}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedSchema = formData.formSchema.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, formSchema: updatedSchema }));
+                        }}
+                        className="ml-3 p-1.5 rounded hover:bg-red-50 transition-colors"
+                        style={{ color: '#ef4444' }}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {formData.formSchema.length > 0 && (
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Go to Step 2 to edit fields
+                      setStep(2);
+                    }}
+                    className="text-sm hover:opacity-80"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    ← Edit fields in Form Design (Step 2)
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
@@ -1545,8 +1674,8 @@ export default function NewAutomationPage() {
         )}
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="mt-6 pt-6 flex justify-between flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
+        {/* Fixed Navigation Buttons */}
+        <div className="mt-6 pt-4 pb-2 flex justify-between flex-shrink-0" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
           <Button variant="outline" onClick={handleBack} disabled={step === 1}>
             Back
           </Button>

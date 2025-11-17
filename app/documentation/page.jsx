@@ -174,23 +174,23 @@ export default function DocumentationPage() {
               <h4 className="font-semibold mt-4">Common Patterns:</h4>
               <div className="space-y-2">
                 <div className="flex justify-between p-2 rounded" style={{ backgroundColor: 'var(--bg)' }}>
-                  <code className="text-sm" style={{ color: '#4C12A1' }}>0 * * * *</code>
+                  <code className="text-sm" style={{ color: 'var(--primary)' }}>0 * * * *</code>
                   <span className="text-sm">Every hour at minute 0</span>
                 </div>
                 <div className="flex justify-between p-2 rounded" style={{ backgroundColor: 'var(--bg)' }}>
-                  <code className="text-sm" style={{ color: '#4C12A1' }}>0 0 * * *</code>
+                  <code className="text-sm" style={{ color: 'var(--primary)' }}>0 0 * * *</code>
                   <span className="text-sm">Daily at midnight</span>
                 </div>
                 <div className="flex justify-between p-2 rounded" style={{ backgroundColor: 'var(--bg)' }}>
-                  <code className="text-sm" style={{ color: '#4C12A1' }}>0 9 * * 1-5</code>
+                  <code className="text-sm" style={{ color: 'var(--primary)' }}>0 9 * * 1-5</code>
                   <span className="text-sm">Weekdays at 9:00 AM</span>
                 </div>
                 <div className="flex justify-between p-2 rounded" style={{ backgroundColor: 'var(--bg)' }}>
-                  <code className="text-sm" style={{ color: '#4C12A1' }}>*/15 * * * *</code>
+                  <code className="text-sm" style={{ color: 'var(--primary)' }}>*/15 * * * *</code>
                   <span className="text-sm">Every 15 minutes</span>
                 </div>
                 <div className="flex justify-between p-2 rounded" style={{ backgroundColor: 'var(--bg)' }}>
-                  <code className="text-sm" style={{ color: '#4C12A1' }}>0 0 1 * *</code>
+                  <code className="text-sm" style={{ color: 'var(--primary)' }}>0 0 1 * *</code>
                   <span className="text-sm">First day of month at midnight</span>
                 </div>
               </div>
@@ -417,7 +417,7 @@ export default function DocumentationPage() {
             border: '1px solid var(--border)',
             backgroundColor: 'var(--surface)',
             color: 'var(--text)',
-            focusRing: '#4C12A1'
+            focusRing: 'var(--primary)'
           }}
         />
       </div>
@@ -446,7 +446,7 @@ export default function DocumentationPage() {
                   style={{ borderBottom: isExpanded ? '1px solid var(--border)' : 'none' }}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                    <Icon className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                     <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
                       {section.title}
                     </h2>
@@ -467,7 +467,7 @@ export default function DocumentationPage() {
                     {section.items.map((item, index) => (
                       <div key={index} className="p-6">
                         <h3 className="text-base font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text)' }}>
-                          <FileText className="h-4 w-4" style={{ color: '#4C12A1' }} />
+                          <FileText className="h-4 w-4" style={{ color: 'var(--primary)' }} />
                           {item.title}
                         </h3>
                         <div className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>

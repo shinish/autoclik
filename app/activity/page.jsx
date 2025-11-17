@@ -111,7 +111,7 @@ export default function ActivityPage() {
     if (item.type === 'run') {
       switch (item.status) {
         case 'success':
-          return <CheckCircle className="h-5 w-5" style={{ color: '#22c55e' }} />;
+          return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
         case 'failed':
           return <XCircle className="h-5 w-5" style={{ color: '#ef4444' }} />;
         case 'running':
@@ -124,17 +124,17 @@ export default function ActivityPage() {
     } else {
       switch (item.action) {
         case 'login':
-          return <CheckCircle className="h-5 w-5" style={{ color: '#22c55e' }} />;
+          return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
         case 'logout':
           return <XCircle className="h-5 w-5" style={{ color: '#6b7280' }} />;
         case 'created':
-          return <Plus className="h-5 w-5" style={{ color: '#22c55e' }} />;
+          return <Plus className="h-5 w-5" style={{ color: 'var(--success)' }} />;
         case 'updated':
           return <Edit className="h-5 w-5" style={{ color: '#3b82f6' }} />;
         case 'deleted':
           return <Trash2 className="h-5 w-5" style={{ color: '#ef4444' }} />;
         case 'executed':
-          return <Play className="h-5 w-5" style={{ color: '#4C12A1' }} />;
+          return <Play className="h-5 w-5" style={{ color: 'var(--primary)' }} />;
         default:
           return <FileText className="h-5 w-5" style={{ color: 'var(--muted)' }} />;
       }
@@ -143,7 +143,7 @@ export default function ActivityPage() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      success: { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' },
+      success: { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' },
       failed: { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' },
       running: { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' },
       pending: { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' },
@@ -197,7 +197,7 @@ export default function ActivityPage() {
               border: '1px solid var(--border)',
               backgroundColor: 'var(--surface)',
               color: 'var(--text)',
-              focusRing: '#4C12A1'
+              focusRing: 'var(--primary)'
             }}
           />
         </div>
@@ -211,9 +211,9 @@ export default function ActivityPage() {
               onClick={() => setTypeFilter(type)}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize"
               style={{
-                backgroundColor: typeFilter === type ? '#4C12A1' : 'var(--surface)',
+                backgroundColor: typeFilter === type ? 'var(--primary)' : 'var(--surface)',
                 color: typeFilter === type ? 'white' : 'var(--text)',
-                border: `1px solid ${typeFilter === type ? '#4C12A1' : 'var(--border)'}`
+                border: `1px solid ${typeFilter === type ? 'var(--primary)' : 'var(--border)'}`
               }}
             >
               {type}
@@ -230,9 +230,9 @@ export default function ActivityPage() {
               onClick={() => setStatusFilter(status)}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize"
               style={{
-                backgroundColor: statusFilter === status ? '#4C12A1' : 'var(--surface)',
+                backgroundColor: statusFilter === status ? 'var(--primary)' : 'var(--surface)',
                 color: statusFilter === status ? 'white' : 'var(--text)',
-                border: `1px solid ${statusFilter === status ? '#4C12A1' : 'var(--border)'}`
+                border: `1px solid ${statusFilter === status ? 'var(--primary)' : 'var(--border)'}`
               }}
             >
               {status}
@@ -273,7 +273,7 @@ export default function ActivityPage() {
                           </h3>
                           {getStatusBadge(item.status)}
                           {item.status === 'success' && item.result && (
-                            <span className="text-xs px-2 py-1 rounded-md" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+                            <span className="text-xs px-2 py-1 rounded-md" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
                               ✓ Validated
                             </span>
                           )}
@@ -364,7 +364,7 @@ export default function ActivityPage() {
                     {item.automation?.namespace && (
                       <span
                         className="px-3 py-1 text-xs font-semibold rounded-md flex-shrink-0"
-                        style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                        style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                       >
                         {item.automation.namespace}
                       </span>
@@ -391,12 +391,12 @@ export default function ActivityPage() {
                                              item.action === 'updated' ? 'rgba(59, 130, 246, 0.1)' :
                                              item.action === 'deleted' ? 'rgba(239, 68, 68, 0.1)' :
                                              'rgba(76, 18, 161, 0.1)',
-                              color: item.action === 'login' ? '#22c55e' :
+                              color: item.action === 'login' ? 'var(--success)' :
                                     item.action === 'logout' ? '#6b7280' :
-                                    item.action === 'created' ? '#22c55e' :
+                                    item.action === 'created' ? 'var(--success)' :
                                     item.action === 'updated' ? '#3b82f6' :
                                     item.action === 'deleted' ? '#ef4444' :
-                                    '#4C12A1'
+                                    'var(--primary)'
                             }}
                           >
                             {item.action}
@@ -422,7 +422,7 @@ export default function ActivityPage() {
                               return (
                                 <>
                                   {metadata.department && metadata.department !== 'N/A' && (
-                                    <span className="px-2 py-0.5 text-xs rounded-md" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}>
+                                    <span className="px-2 py-0.5 text-xs rounded-md" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}>
                                       {metadata.department}
                                     </span>
                                   )}

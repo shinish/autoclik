@@ -100,7 +100,7 @@ export default function NotificationsPage() {
       case 'warning':
         return <AlertCircle className="h-6 w-6" style={{ color: '#f59e0b' }} />;
       case 'success':
-        return <CheckCircle className="h-6 w-6" style={{ color: '#22c55e' }} />;
+        return <CheckCircle className="h-6 w-6" style={{ color: 'var(--success)' }} />;
       case 'info':
       default:
         return <Info className="h-6 w-6" style={{ color: '#3b82f6' }} />;
@@ -152,9 +152,9 @@ export default function NotificationsPage() {
             onClick={() => setFilter(filterOption)}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize"
             style={{
-              backgroundColor: filter === filterOption ? '#4C12A1' : 'var(--surface)',
+              backgroundColor: filter === filterOption ? 'var(--primary)' : 'var(--surface)',
               color: filter === filterOption ? 'white' : 'var(--text)',
-              border: `1px solid ${filter === filterOption ? '#4C12A1' : 'var(--border)'}`
+              border: `1px solid ${filter === filterOption ? 'var(--primary)' : 'var(--border)'}`
             }}
           >
             {filterOption}
@@ -189,7 +189,7 @@ export default function NotificationsPage() {
               style={{
                 border: '1px solid var(--border)',
                 backgroundColor: notification.read ? 'var(--surface)' : 'rgba(76, 18, 161, 0.05)',
-                borderLeft: notification.read ? '1px solid var(--border)' : '4px solid #4C12A1'
+                borderLeft: notification.read ? '1px solid var(--border)' : '4px solid var(--primary)'
               }}
             >
               <div className="flex gap-4">
@@ -218,7 +218,7 @@ export default function NotificationsPage() {
                           <button
                             onClick={() => handleMarkAsRead(notification.id)}
                             className="text-xs font-medium hover:underline"
-                            style={{ color: '#4C12A1' }}
+                            style={{ color: 'var(--primary)' }}
                           >
                             Mark as read
                           </button>
@@ -247,7 +247,7 @@ export default function NotificationsPage() {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    backgroundColor: '#4C12A1'
+                    backgroundColor: 'var(--primary)'
                   }}
                   title="Unread"
                 />

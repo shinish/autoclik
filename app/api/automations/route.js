@@ -110,6 +110,7 @@ export async function POST(request) {
         apiEndpoint: '', // Always empty - use global setting from Settings
         templateId: body.templateId || '',
         inventoryId: body.inventoryId || '',
+        instanceGroupId: body.instanceGroupId || null,
         extraVars: body.extraVars || '',
         pinned: body.pinned || false,
         featured: body.featured || false,

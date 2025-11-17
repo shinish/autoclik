@@ -305,7 +305,7 @@ export default function AuditPage() {
   const getPieSegments = (statsData) => {
     const total = statsData.total || 1;
     const segments = [
-      { label: 'Success', value: statsData.success, color: '#22c55e', percentage: (statsData.success / total) * 100 },
+      { label: 'Success', value: statsData.success, color: 'var(--success)', percentage: (statsData.success / total) * 100 },
       { label: 'Failed', value: statsData.failed, color: '#ef4444', percentage: (statsData.failed / total) * 100 },
       { label: 'Running', value: statsData.running, color: '#3b82f6', percentage: (statsData.running / total) * 100 },
       { label: 'Pending', value: statsData.pending, color: '#f59e0b', percentage: (statsData.pending / total) * 100 },
@@ -534,9 +534,9 @@ export default function AuditPage() {
                 onClick={() => setTimeRange(range)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize hover:opacity-80"
                 style={{
-                  backgroundColor: timeRange === range ? '#4C12A1' : 'var(--surface)',
+                  backgroundColor: timeRange === range ? 'var(--primary)' : 'var(--surface)',
                   color: timeRange === range ? 'white' : 'var(--text)',
-                  border: `1px solid ${timeRange === range ? '#4C12A1' : 'var(--border)'}`
+                  border: `1px solid ${timeRange === range ? 'var(--primary)' : 'var(--border)'}`
                 }}
               >
                 {range === '30days' ? '30 Days' : range}
@@ -646,13 +646,13 @@ export default function AuditPage() {
           label="Total"
           value={stats.total}
           icon={Calendar}
-          color="#4C12A1"
+          color="var(--primary)"
         />
         <CompactStatCard
           label="Success"
           value={stats.success}
           icon={CheckCircle}
-          color="#22c55e"
+          color="var(--success)"
         />
         <CompactStatCard
           label="Failed"
@@ -917,15 +917,15 @@ export default function AuditPage() {
                           const { pathD, lineD, points } = createAreaPath('success');
                           return (
                             <g key="success">
-                              <path d={pathD} fill="#22c55e" fillOpacity="0.2" />
-                              <path d={lineD} stroke="#22c55e" strokeWidth="2" fill="none" />
+                              <path d={pathD} fill="var(--success)" fillOpacity="0.2" />
+                              <path d={lineD} stroke="var(--success)" strokeWidth="2" fill="none" />
                               {points.map((point, i) => (
                                 <circle
                                   key={i}
                                   cx={point.x}
                                   cy={point.y}
                                   r="4"
-                                  fill="#22c55e"
+                                  fill="var(--success)"
                                   className="hover:r-6 transition-all cursor-pointer"
                                 >
                                   <title>Success: {filteredChartData[i].success}</title>
@@ -1044,11 +1044,11 @@ export default function AuditPage() {
                   className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:opacity-80"
                   style={{
                     backgroundColor: visibleStatuses.success ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
-                    border: `1px solid ${visibleStatuses.success ? '#22c55e' : 'var(--border)'}`,
+                    border: `1px solid ${visibleStatuses.success ? 'var(--success)' : 'var(--border)'}`,
                     opacity: visibleStatuses.success ? 1 : 0.5
                   }}
                 >
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#22c55e' }}></div>
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--success)' }}></div>
                   <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Success</span>
                 </button>
                 <button
@@ -1098,17 +1098,17 @@ export default function AuditPage() {
         <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold uppercase" style={{ color: 'var(--muted)' }}>Success Rate</h3>
-            <Activity className="h-4 w-4" style={{ color: '#22c55e' }} />
+            <Activity className="h-4 w-4" style={{ color: 'var(--success)' }} />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold" style={{ color: '#22c55e' }}>{calculateSuccessRate()}%</span>
+            <span className="text-4xl font-bold" style={{ color: 'var(--success)' }}>{calculateSuccessRate()}%</span>
             <span className="text-sm" style={{ color: 'var(--muted)' }}>of {stats.total} runs</span>
           </div>
           <div className="mt-4 h-2 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
             <div
               className="h-2 rounded-full transition-all"
               style={{
-                backgroundColor: '#22c55e',
+                backgroundColor: 'var(--success)',
                 width: `${calculateSuccessRate()}%`
               }}
             />
@@ -1185,8 +1185,8 @@ export default function AuditPage() {
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold"
                     style={{
-                      backgroundColor: index === 0 ? '#22c55e15' : 'var(--surface)',
-                      color: index === 0 ? '#22c55e' : 'var(--text)'
+                      backgroundColor: index === 0 ? 'var(--success)15' : 'var(--surface)',
+                      color: index === 0 ? 'var(--success)' : 'var(--text)'
                     }}
                   >
                     #{index + 1}
@@ -1200,7 +1200,7 @@ export default function AuditPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold" style={{ color: '#4C12A1' }}>
+                    <p className="font-bold" style={{ color: 'var(--primary)' }}>
                       {automation.runs || 0}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>runs</p>
@@ -1274,7 +1274,7 @@ export default function AuditPage() {
               <tbody>
                 {recentRuns.slice(0, expandedView ? 20 : 5).map((run) => {
                   const statusConfig = {
-                    success: { color: '#22c55e', bg: '#22c55e15', icon: CheckCircle },
+                    success: { color: 'var(--success)', bg: 'var(--success)15', icon: CheckCircle },
                     failed: { color: '#ef4444', bg: '#ef444415', icon: XCircle },
                     running: { color: '#3b82f6', bg: '#3b82f615', icon: Clock },
                     pending: { color: '#f59e0b', bg: '#f59e0b15', icon: AlertCircle },
@@ -1377,9 +1377,9 @@ export default function AuditPage() {
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
               style={{
-                backgroundColor: showAdvancedSearch ? '#4C12A1' : 'var(--bg)',
+                backgroundColor: showAdvancedSearch ? 'var(--primary)' : 'var(--bg)',
                 color: showAdvancedSearch ? 'white' : 'var(--text)',
-                border: `1px solid ${showAdvancedSearch ? '#4C12A1' : 'var(--border)'}`
+                border: `1px solid ${showAdvancedSearch ? 'var(--primary)' : 'var(--border)'}`
               }}
             >
               <Filter className="h-4 w-4" />
@@ -1586,7 +1586,7 @@ export default function AuditPage() {
                   {paginatedRuns.map((run) => {
                     const automation = automations.find(a => a.id === run.automationId);
                     const statusConfig = {
-                      success: { color: '#22c55e', bg: '#22c55e15', icon: CheckCircle },
+                      success: { color: 'var(--success)', bg: 'var(--success)15', icon: CheckCircle },
                       failed: { color: '#ef4444', bg: '#ef444415', icon: XCircle },
                       running: { color: '#3b82f6', bg: '#3b82f615', icon: Clock },
                       pending: { color: '#f59e0b', bg: '#f59e0b15', icon: AlertCircle },
@@ -1606,7 +1606,7 @@ export default function AuditPage() {
                         style={{ borderBottom: '1px solid var(--border)' }}
                       >
                         <td className="px-4 py-3">
-                          <code className="text-xs font-mono" style={{ color: '#4C12A1' }}>
+                          <code className="text-xs font-mono" style={{ color: 'var(--primary)' }}>
                             {run.uniqueId || run.id.substring(0, 8)}
                           </code>
                         </td>
@@ -1737,9 +1737,9 @@ export default function AuditPage() {
                           onClick={() => setCurrentPage(pageNum)}
                           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
                           style={{
-                            backgroundColor: currentPage === pageNum ? '#4C12A1' : 'var(--bg)',
+                            backgroundColor: currentPage === pageNum ? 'var(--primary)' : 'var(--bg)',
                             color: currentPage === pageNum ? 'white' : 'var(--text)',
-                            border: `1px solid ${currentPage === pageNum ? '#4C12A1' : 'var(--border)'}`
+                            border: `1px solid ${currentPage === pageNum ? 'var(--primary)' : 'var(--border)'}`
                           }}
                         >
                           {pageNum}

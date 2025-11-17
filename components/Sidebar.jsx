@@ -155,7 +155,7 @@ export default function Sidebar() {
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:opacity-80 relative"
                   style={
                     isActive
-                      ? { backgroundColor: '#4C12A1', color: 'white' }
+                      ? { backgroundColor: 'var(--primary)', color: 'white' }
                       : { color: 'var(--text)' }
                   }
                 >
@@ -187,7 +187,7 @@ export default function Sidebar() {
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:opacity-80"
                 style={
                   isActive
-                    ? { backgroundColor: '#4C12A1', color: 'white' }
+                    ? { backgroundColor: 'var(--primary)', color: 'white' }
                     : { color: 'var(--text)' }
                 }
               >

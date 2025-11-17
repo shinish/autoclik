@@ -21,7 +21,7 @@ export default function Toast({ message, type = 'success', onClose, duration = 5
   };
 
   const colors = {
-    success: { bg: '#22c55e', text: 'white' },
+    success: { bg: 'var(--success)', text: 'white' },
     error: { bg: '#ef4444', text: 'white' },
     warning: { bg: '#f59e0b', text: 'white' },
     info: { bg: '#3b82f6', text: 'white' }

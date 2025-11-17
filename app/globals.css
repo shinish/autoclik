@@ -7,32 +7,34 @@
  */
 
 :root {
-  /* ===== FIS Brand (Light) ===== */
-  --fis-green: #00a859;       /* Primary brand green */
-  --fis-teal:  #00c2a0;       /* Accent teal */
-  --fis-navy:  #0b1e2d;       /* Deep navy (text accents) */
-  --fis-grey:  #475569;       /* Slate grey (muted copy) */
+  /* ===== Brand Colors (Light) ===== */
+  --eggplant:  #4a1d5c;       /* Primary - Eggplant */
+  --navy:      #1e3a5f;       /* Primary - Navy */
+  --raspberry: #c72c6c;       /* Secondary - Raspberry */
+  --charcoal:  #374151;       /* Secondary - Charcoal */
+  --gray:      #6b7280;       /* Secondary - Gray */
+  --core-green: #00a859;      /* Accent - Core Green */
 
   /* ===== Semantic Palette (Light) ===== */
-  --bg:        #ffffff;
-  --surface:   #f8fafc;       /* panel surfaces */
-  --sidebar-bg: #e2e8f0;      /* darker sidebar background for light mode */
-  --text:      #0f172a;       /* main text */
-  --muted:     #475569;
-  --primary:   var(--fis-green);
-  --secondary: var(--fis-teal);
-  --accent:    #22c55e;       /* success accent */
-  --success:   #16a34a;
-  --warning:   #eab308;
+  --bg:        #ffffff;       /* Tertiary - White */
+  --surface:   #f9fafb;       /* panel surfaces */
+  --sidebar-bg: #f3f4f6;      /* lighter sidebar background for light mode */
+  --text:      #000000;       /* Tertiary - Black */
+  --muted:     var(--gray);   /* Secondary gray for muted text */
+  --primary:   var(--eggplant); /* Primary brand color */
+  --secondary: var(--raspberry); /* Secondary brand color */
+  --accent:    var(--core-green); /* Accent - Core Green */
+  --success:   var(--core-green);
+  --warning:   #f59e0b;
   --danger:    #dc2626;
-  --border:    #e2e8f0;
+  --border:    #e5e7eb;
 
   /* ===== Radii & Shadows ===== */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(2, 8, 23, 0.06);
-  --shadow-md: 0 4px 16px rgba(2, 8, 23, 0.08);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
 
   /* ===== Motion ===== */
   --transition-fast: 150ms;
@@ -40,35 +42,39 @@
 
   /* Legacy Variables (for compatibility) */
   --background: #ffffff;
-  --foreground: #0f172a;
-  --primary: var(--fis-green);
-  --primary-hover: #008c47;
+  --foreground: #000000;
+  --primary-hover: #3a1549;
+  --fis-green: var(--core-green);
 }
 
 :root[data-theme="dark"] {
-  /* ===== FIS Brand (Dark transforms) ===== */
-  --fis-green: #00c76f;       /* brightened green for dark mode */
-  --fis-teal:  #00d4ae;       /* brightened teal */
-  --fis-navy:  #a8b9ff;       /* lightened navy for readability */
-  --fis-grey:  #94a3b8;
+  /* ===== Brand Colors (Dark) ===== */
+  --eggplant:  #7c3a99;       /* Lightened eggplant for dark mode */
+  --navy:      #3d5a80;       /* Lightened navy */
+  --raspberry: #e85d8a;       /* Lightened raspberry */
+  --charcoal:  #9ca3af;       /* Lightened charcoal */
+  --gray:      #9ca3af;       /* Lightened gray */
+  --core-green: #10b981;      /* Brightened green for dark mode */
 
   /* ===== Semantic Palette (Dark) ===== */
-  --bg:        #0f172a;       /* slate-900 */
-  --surface:   #1e293b;       /* slate-800 */
-  --sidebar-bg: #1e293b;      /* same as surface for dark mode */
-  --text:      #f1f5f9;       /* slate-100 */
-  --muted:     #94a3b8;       /* slate-400 */
-  --primary:   var(--fis-green);
-  --secondary: var(--fis-teal);
-  --accent:    #4ade80;
-  --success:   #10b981;       /* emerald-500 */
-  --warning:   #f59e0b;       /* amber-500 */
-  --danger:    #ef4444;       /* red-500 */
-  --border:    #334155;       /* slate-700 */
+  --bg:        #000000;       /* Tertiary - Black */
+  --surface:   #1f2937;       /* Dark gray surface */
+  --sidebar-bg: #111827;      /* Darker sidebar background for dark mode */
+  --text:      #ffffff;       /* Tertiary - White */
+  --muted:     var(--gray);   /* Lightened gray for muted text */
+  --primary:   var(--eggplant); /* Primary brand color */
+  --secondary: var(--raspberry); /* Secondary brand color */
+  --accent:    var(--core-green); /* Accent - Core Green */
+  --success:   var(--core-green);
+  --warning:   #fbbf24;
+  --danger:    #ef4444;
+  --border:    #374151;
 
   /* Legacy Variables (for compatibility) */
-  --background: #0f172a;
-  --foreground: #f1f5f9;
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary-hover: #9d4dbd;
+  --fis-green: var(--core-green);
 }
 
 @media (prefers-color-scheme: dark) {

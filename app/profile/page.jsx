@@ -219,7 +219,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4C12A1' }}></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: 'var(--primary)' }}></div>
           <p style={{ color: 'var(--muted)' }}>Loading profile...</p>
         </div>
       </div>
@@ -271,7 +271,7 @@ export default function ProfilePage() {
                 onClick={handlePhotoClick}
                 disabled={uploading}
                 className="absolute bottom-0 right-0 p-2 rounded-full shadow-lg hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: '#4C12A1' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Camera className="h-4 w-4 text-white" />
               </button>
@@ -512,7 +512,7 @@ export default function ProfilePage() {
         <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Lock className="h-5 w-5" style={{ color: '#4C12A1' }} />
+              <Lock className="h-5 w-5" style={{ color: 'var(--primary)' }} />
               <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
                 Change Password
               </h2>

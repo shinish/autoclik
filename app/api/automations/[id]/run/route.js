@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { launchJobTemplate, pollJobUntilComplete, getJobArtifacts, getJobOutput } from '@/lib/awx-api';
+import { launchJobTemplate, pollJobUntilComplete, getJobArtifacts, getJobOutput, testAwxConnection } from '@/lib/awx-api';
 import yaml from 'js-yaml';
 import { generateUniqueRunId } from '@/lib/runIdGenerator';
 import { logAutomationStart, logAutomationSuccess, logAutomationFailure, logError, logInfo } from '@/lib/logger';
@@ -146,6 +146,65 @@ export async function POST(request, { params }) {
         // If it's a different error or we're out of retries, throw it
         throw createError;
       }
+    }
+
+    // Test AWX connection before attempting to execute
+    const connectionTest = await testAwxConnection();
+    if (!connectionTest.valid) {
+      logError('🔌 AWX Connection Test Failed - Cannot Execute Automation', {
+        '🚨 Error Code': connectionTest.error,
+        '📝 Error Message': connectionTest.message,
+        '🆔 Database Run ID': run.id,
+        '🎫 Unique Run ID': uniqueId,
+        '🔧 Automation ID': automation.id,
+        '📛 Automation Name': automation.name,
+        '👤 Executed By': executedBy,
+        '⏰ Failed At': new Date().toISOString(),
+        '💡 Solution': 'Configure AWX Base URL and Token in Settings page',
+        '📍 Settings Path': '/settings',
+      });
+
+      // Create activity log for failed execution
+      await prisma.activity.create({
+        data: {
+          action: 'executed',
+          entityType: 'automation',
+          entityId: automation.id,
+          entityName: automation.name,
+          description: `Failed to execute automation "${automation.name}" (${uniqueId}): ${connectionTest.message}`,
+          performedBy: body.user?.email || 'system',
+          metadata: JSON.stringify({
+            runId: run.id,
+            uniqueId: uniqueId,
+            parameters: parameters,
+            status: 'failed',
+            error: connectionTest.message,
+            errorCode: connectionTest.error,
+            errorType: 'AWX_CONNECTION_ERROR',
+          }),
+        },
+      });
+
+      // Update run with failed status
+      await prisma.run.update({
+        where: { id: run.id },
+        data: {
+          status: 'failed',
+          errorMessage: connectionTest.message,
+          completedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error: 'AWX_CONNECTION_ERROR',
+          errorCode: connectionTest.error,
+          message: connectionTest.message,
+          requiresConfiguration: true,
+          redirectToSettings: true,
+        },
+        { status: 500 }
+      );
     }
 
     try {

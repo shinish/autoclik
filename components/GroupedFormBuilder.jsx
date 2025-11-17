@@ -186,7 +186,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
               : 'hover:bg-opacity-50'
           }`}
           style={{
-            backgroundColor: mode === 'visual' ? '#4C12A1' : 'transparent',
+            backgroundColor: mode === 'visual' ? 'var(--primary)' : 'transparent',
             color: mode === 'visual' ? 'white' : 'var(--text)'
           }}
         >
@@ -201,7 +201,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
               : 'hover:bg-opacity-50'
           }`}
           style={{
-            backgroundColor: mode === 'json' ? '#4C12A1' : 'transparent',
+            backgroundColor: mode === 'json' ? 'var(--primary)' : 'transparent',
             color: mode === 'json' ? 'white' : 'var(--text)'
           }}
         >
@@ -227,7 +227,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
               <button
                 onClick={addInstanceGroup}
                 className="px-3 py-2 rounded-lg text-white flex items-center gap-2"
-                style={{ backgroundColor: '#4C12A1' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Plus className="h-4 w-4" />
                 Add Group
@@ -282,7 +282,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
               <button
                 onClick={addExtraVarField}
                 className="px-3 py-2 rounded-lg text-white flex items-center gap-2"
-                style={{ backgroundColor: '#4C12A1' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Plus className="h-4 w-4" />
                 Add Field
@@ -437,7 +437,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
             <button
               onClick={() => notifyChange(formGroups)}
               className="mt-4 px-4 py-2 rounded-lg text-white"
-              style={{ backgroundColor: '#4C12A1' }}
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               Apply Changes
             </button>
@@ -485,7 +485,7 @@ export default function GroupedFormBuilder({ value, onChange }) {
               onClick={applyJson}
               disabled={!!jsonError}
               className="px-4 py-2 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#4C12A1' }}
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               Apply JSON
             </button>

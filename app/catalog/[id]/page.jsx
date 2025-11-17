@@ -63,7 +63,7 @@ export default function CatalogDetailPage() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="h-4 w-4" style={{ color: '#22c55e' }} />;
+        return <CheckCircle className="h-4 w-4" style={{ color: 'var(--success)' }} />;
       case 'failed':
         return <XCircle className="h-4 w-4" style={{ color: '#ef4444' }} />;
       case 'running':
@@ -77,7 +77,7 @@ export default function CatalogDetailPage() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      success: { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '#22c55e' },
+      success: { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)', border: 'var(--success)' },
       failed: { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '#ef4444' },
       running: { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '#3b82f6' },
       pending: { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '#f59e0b' },
@@ -128,7 +128,7 @@ export default function CatalogDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px]" style={{ backgroundColor: 'var(--bg)' }}>
-        <Loader className="h-12 w-12 animate-spin mb-4" style={{ color: '#4C12A1' }} />
+        <Loader className="h-12 w-12 animate-spin mb-4" style={{ color: 'var(--primary)' }} />
         <p style={{ color: 'var(--muted)' }}>Loading automation...</p>
       </div>
     );
@@ -163,7 +163,7 @@ export default function CatalogDetailPage() {
               <div className="flex items-center gap-3 mt-2">
                 <span
                   className="px-3 py-1 text-sm font-semibold rounded-full"
-                  style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                  style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                 >
                   {automation.namespace}
                 </span>
@@ -203,7 +203,7 @@ export default function CatalogDetailPage() {
                       <span
                         key={tag}
                         className="px-3 py-1 text-xs font-semibold rounded-full"
-                        style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                        style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                       >
                         {tag}
                       </span>
@@ -239,7 +239,7 @@ export default function CatalogDetailPage() {
             {(automation.templateId || automation.inventoryId) && (
               <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Settings className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Settings className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>AWX Configuration</h2>
                 </div>
                 <div className="space-y-3">
@@ -265,8 +265,8 @@ export default function CatalogDetailPage() {
                       className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full"
                       style={{
                         backgroundColor: automation.customBody ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                        color: automation.customBody ? '#3b82f6' : '#22c55e',
-                        border: `1px solid ${automation.customBody ? '#3b82f6' : '#22c55e'}`
+                        color: automation.customBody ? '#3b82f6' : 'var(--success)',
+                        border: `1px solid ${automation.customBody ? '#3b82f6' : 'var(--success)'}`
                       }}
                     >
                       {automation.customBody ? 'JSON Body' : 'Form Builder'}
@@ -280,7 +280,7 @@ export default function CatalogDetailPage() {
             {(automation.createdBy || automation.createdAt) && (
               <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Calendar className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Calendar className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Metadata</h2>
                 </div>
                 <div className="space-y-3">
@@ -318,11 +318,11 @@ export default function CatalogDetailPage() {
             {automation.formSchema && JSON.parse(automation.formSchema).length > 0 && (
               <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <FileText className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <FileText className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Form Schema</h2>
                   <span
                     className="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full"
-                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                   >
                     {JSON.parse(automation.formSchema).length} fields
                   </span>
@@ -347,14 +347,14 @@ export default function CatalogDetailPage() {
                         >
                           <td className="px-4 py-3 text-sm" style={{ color: 'var(--text)' }}>{field.label}</td>
                           <td className="px-4 py-3">
-                            <code className="text-xs font-mono px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg)', color: '#4C12A1' }}>
+                            <code className="text-xs font-mono px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
                               {field.key}
                             </code>
                           </td>
                           <td className="px-4 py-3">
                             <span
                               className="inline-flex px-2 py-1 text-xs font-semibold rounded"
-                              style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                              style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                             >
                               {field.type}
                             </span>
@@ -381,7 +381,7 @@ export default function CatalogDetailPage() {
             {automation.customBody && (
               <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Code className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Code className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Custom Request Body (JSON)</h2>
                 </div>
                 <pre
@@ -401,12 +401,12 @@ export default function CatalogDetailPage() {
             {automation.extraVars && automation.extraVars.trim() && (
               <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Settings className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Settings className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Extra Variables (AWX)</h2>
                 </div>
                 <pre
                   className="text-xs p-4 rounded-lg overflow-x-auto font-mono"
-                  style={{ backgroundColor: '#1e1e1e', color: '#22c55e' }}
+                  style={{ backgroundColor: '#1e1e1e', color: 'var(--success)' }}
                 >
                   <code>{automation.extraVars}</code>
                 </pre>
@@ -419,11 +419,11 @@ export default function CatalogDetailPage() {
         <div className="rounded-lg shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5" style={{ color: '#4C12A1' }} />
+              <History className="h-5 w-5" style={{ color: 'var(--primary)' }} />
               <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Execution History</h2>
               <span
                 className="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full"
-                style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
               >
                 {runs.length}
               </span>
@@ -485,7 +485,7 @@ export default function CatalogDetailPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <code
                           className="text-sm font-mono font-semibold"
-                          style={{ color: '#4C12A1' }}
+                          style={{ color: 'var(--primary)' }}
                         >
                           {run.uniqueId || run.id.substring(0, 8)}
                         </code>
@@ -609,8 +609,8 @@ export default function CatalogDetailPage() {
                           onClick={() => handlePageChange(pageNum)}
                           className="px-3 py-2 rounded-lg transition-all min-w-[40px]"
                           style={{
-                            backgroundColor: currentPage === pageNum ? '#4C12A1' : 'var(--surface)',
-                            border: `1px solid ${currentPage === pageNum ? '#4C12A1' : 'var(--border)'}`,
+                            backgroundColor: currentPage === pageNum ? 'var(--primary)' : 'var(--surface)',
+                            border: `1px solid ${currentPage === pageNum ? 'var(--primary)' : 'var(--border)'}`,
                             color: currentPage === pageNum ? 'white' : 'var(--text)',
                             fontWeight: currentPage === pageNum ? '600' : '400'
                           }}

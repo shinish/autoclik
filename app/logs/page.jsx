@@ -59,7 +59,7 @@ export default function LogsPage() {
       case 'INFO':
         return <Info className="h-5 w-5" style={{ color: '#3b82f6' }} />;
       default:
-        return <CheckCircle className="h-5 w-5" style={{ color: '#10b981' }} />;
+        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
     }
   };
 
@@ -72,7 +72,7 @@ export default function LogsPage() {
       case 'INFO':
         return { bg: 'rgba(59, 130, 246, 0.1)', border: '#3b82f6', text: '#2563eb' };
       default:
-        return { bg: 'rgba(16, 185, 129, 0.1)', border: '#10b981', text: '#059669' };
+        return { bg: 'rgba(16, 185, 129, 0.1)', border: 'var(--success)', text: '#059669' };
     }
   };
 
@@ -84,7 +84,7 @@ export default function LogsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-        <RefreshCw className="h-12 w-12 animate-spin" style={{ color: '#4C12A1' }} />
+        <RefreshCw className="h-12 w-12 animate-spin" style={{ color: 'var(--primary)' }} />
       </div>
     );
   }
@@ -107,7 +107,7 @@ export default function LogsPage() {
               onClick={() => setAutoRefresh(!autoRefresh)}
               className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
               style={{
-                backgroundColor: autoRefresh ? '#4C12A1' : 'var(--surface)',
+                backgroundColor: autoRefresh ? 'var(--primary)' : 'var(--surface)',
                 color: autoRefresh ? 'white' : 'var(--text)',
                 border: '1px solid var(--border)',
               }}
@@ -152,7 +152,7 @@ export default function LogsPage() {
                 onClick={() => setFilter(level)}
                 className="px-4 py-2 rounded-lg transition-all"
                 style={{
-                  backgroundColor: filter === level ? '#4C12A1' : 'var(--surface)',
+                  backgroundColor: filter === level ? 'var(--primary)' : 'var(--surface)',
                   color: filter === level ? 'white' : 'var(--text)',
                   border: '1px solid var(--border)',
                 }}

@@ -31,7 +31,7 @@ export default function FormBuilderDemo() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#4C12A1' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: 'var(--primary)' }}>
                 1
               </div>
               <h3 className="font-semibold" style={{ color: 'var(--text)' }}>Configure Groups</h3>
@@ -43,7 +43,7 @@ export default function FormBuilderDemo() {
 
           <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#4C12A1' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: 'var(--primary)' }}>
                 2
               </div>
               <h3 className="font-semibold" style={{ color: 'var(--text)' }}>Preview Output</h3>
@@ -55,7 +55,7 @@ export default function FormBuilderDemo() {
 
           <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#4C12A1' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: 'var(--primary)' }}>
                 3
               </div>
               <h3 className="font-semibold" style={{ color: 'var(--text)' }}>Switch Modes</h3>
@@ -130,7 +130,7 @@ export default function FormBuilderDemo() {
 
         {/* Current State Display */}
         {customBody && (
-          <div className="mt-8 p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '2px solid #4C12A1' }}>
+          <div className="mt-8 p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '2px solid var(--primary)' }}>
             <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>
               ✅ Current Custom Body
             </h3>

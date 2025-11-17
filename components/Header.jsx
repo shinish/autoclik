@@ -69,7 +69,7 @@ export default function Header() {
       case 'warning':
         return <AlertCircle className="h-5 w-5" style={{ color: '#f59e0b' }} />;
       case 'success':
-        return <CheckCircle className="h-5 w-5" style={{ color: '#22c55e' }} />;
+        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
       case 'info':
       default:
         return <Info className="h-5 w-5" style={{ color: '#3b82f6' }} />;
@@ -161,7 +161,7 @@ export default function Header() {
                     )}
                   </div>
                   {unreadCount === 0 && notifications.length > 0 && (
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
                       All caught up!
                     </span>
                   )}
@@ -195,7 +195,7 @@ export default function Header() {
                         {!notification.read && (
                           <div
                             className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
-                            style={{ backgroundColor: '#4C12A1' }}
+                            style={{ backgroundColor: 'var(--primary)' }}
                           />
                         )}
 
@@ -236,7 +236,7 @@ export default function Header() {
                     href="/notifications"
                     onClick={() => setShowNotifications(false)}
                     className="flex items-center justify-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity py-1"
-                    style={{ color: '#4C12A1' }}
+                    style={{ color: 'var(--primary)' }}
                   >
                     View all notifications
                     <ArrowRight className="h-4 w-4" />

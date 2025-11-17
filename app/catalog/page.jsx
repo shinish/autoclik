@@ -124,7 +124,7 @@ export default function CatalogPage() {
 
       {/* Search Bar and Filters */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
           <input
             type="text"
@@ -136,7 +136,7 @@ export default function CatalogPage() {
               border: '1px solid var(--border)',
               backgroundColor: 'var(--surface)',
               color: 'var(--text)',
-              focusRing: '#4C12A1'
+              focusRing: 'var(--primary)'
             }}
           />
         </div>
@@ -150,7 +150,7 @@ export default function CatalogPage() {
             border: '1px solid var(--border)',
             backgroundColor: 'var(--surface)',
             color: 'var(--text)',
-            focusRing: '#4C12A1'
+            focusRing: 'var(--primary)'
           }}
         >
           {categories.map((cat) => (
@@ -226,7 +226,7 @@ export default function CatalogPage() {
                       <td className="px-6 py-4">
                         <span
                           className="px-2.5 py-1 text-xs font-medium rounded-md"
-                          style={{ backgroundColor: 'rgba(76, 18, 161, 0.12)', color: '#4C12A1' }}
+                          style={{ backgroundColor: 'rgba(76, 18, 161, 0.12)', color: 'var(--primary)' }}
                         >
                           {automation.namespace}
                         </span>
@@ -259,7 +259,7 @@ export default function CatalogPage() {
                             className="p-2 rounded-lg transition-all hover:scale-110"
                             style={{
                               backgroundColor: 'var(--bg)',
-                              color: '#4C12A1'
+                              color: 'var(--primary)'
                             }}
                             title="View Details"
                           >
@@ -272,7 +272,7 @@ export default function CatalogPage() {
                             }}
                             className="p-2 rounded-lg transition-all hover:scale-110"
                             style={{
-                              backgroundColor: '#4C12A1',
+                              backgroundColor: 'var(--primary)',
                               color: 'white'
                             }}
                             title="Run Automation"
@@ -339,9 +339,9 @@ export default function CatalogPage() {
                           onClick={() => handlePageChange(page)}
                           className="px-3 py-2 rounded-lg text-sm font-medium transition-all"
                           style={{
-                            backgroundColor: currentPage === page ? '#4C12A1' : 'var(--surface)',
+                            backgroundColor: currentPage === page ? 'var(--primary)' : 'var(--surface)',
                             color: currentPage === page ? 'white' : 'var(--text)',
-                            border: `1px solid ${currentPage === page ? '#4C12A1' : 'var(--border)'}`
+                            border: `1px solid ${currentPage === page ? 'var(--primary)' : 'var(--border)'}`
                           }}
                         >
                           {page}

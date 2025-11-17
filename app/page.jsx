@@ -93,7 +93,7 @@ export default function Dashboard() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--fis-green)' }} />;
+        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--accent)' }} />;
       case 'failed':
         return <XCircle className="h-5 w-5" style={{ color: '#DC2626' }} />;
       default:
@@ -118,7 +118,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: '#4C12A1' }}></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: 'var(--primary)' }}></div>
           <p className="mt-4 text-sm" style={{ color: 'var(--muted)' }}>Loading dashboard...</p>
         </div>
       </div>
@@ -131,16 +131,16 @@ export default function Dashboard() {
 
       {/* Welcome Message for First Time Setup */}
       {showWelcome && (
-        <div className="rounded-lg p-6" style={{ backgroundColor: '#EBF5FF', border: '1px solid #3B82F6' }}>
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--primary)' }}>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2" style={{ color: '#1E40AF' }}>
+              <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--primary)' }}>
                 Welcome to the Automation Platform!
               </h2>
-              <p className="text-sm mb-4" style={{ color: '#1E40AF' }}>
+              <p className="text-sm mb-4" style={{ color: 'var(--text)' }}>
                 You're all set with your admin account. Get started by:
               </p>
-              <ul className="space-y-2 text-sm" style={{ color: '#1E40AF' }}>
+              <ul className="space-y-2 text-sm" style={{ color: 'var(--text)' }}>
                 <li className="flex items-center">
                   <span className="mr-2">•</span>
                   <span>Adding your first automation to the catalog</span>
@@ -177,10 +177,10 @@ export default function Dashboard() {
             </div>
             <button
               onClick={dismissWelcome}
-              className="ml-4 p-1 rounded hover:bg-blue-200 transition-colors"
+              className="ml-4 p-1 rounded hover:opacity-70 transition-opacity"
               aria-label="Dismiss welcome message"
             >
-              <X className="h-5 w-5" style={{ color: '#1E40AF' }} />
+              <X className="h-5 w-5" style={{ color: 'var(--primary)' }} />
             </button>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function Dashboard() {
         <StatCard title="Runs (30d)" value={(stats?.runs30d || 0).toLocaleString()} />
         <StatCard
           title="Success Rate"
-          value={<span style={{ color: 'var(--fis-green)' }}>{stats?.successRate || '0%'}</span>}
+          value={<span style={{ color: 'var(--accent)' }}>{stats?.successRate || '0%'}</span>}
         />
         <StatCard title="Schedules Active" value={stats?.schedulesActive || 0} />
       </div>
@@ -225,89 +225,93 @@ export default function Dashboard() {
       {/* Recent Activity and Notifications */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Activity */}
-        <div>
-          <h2 className="text-lg font-light mb-4" style={{ color: 'var(--text)' }}>Recent Activity</h2>
-          <div
-            className="relative group"
-            onMouseEnter={() => setShowActivityNav(true)}
-            onMouseLeave={() => setShowActivityNav(false)}
-          >
-            {/* Navigation Buttons */}
-            {recentActivity && recentActivity.length > 3 && (
-              <>
-                <button
-                  onClick={() => scrollActivity('left')}
-                  className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-opacity ${
-                    showActivityNav ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+        <div className="rounded-md p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <h2 className="text-lg font-bold mb-5" style={{ color: 'var(--text)' }}>Recent Activity</h2>
+          <div className="space-y-3">
+            {!recentActivity || recentActivity.length === 0 ? (
+              <div className="rounded-md p-8 text-center" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <Info className="h-10 w-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--muted)' }} />
+                <p className="text-sm font-semibold" style={{ color: 'var(--muted)' }}>No recent activity</p>
+                <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', opacity: 0.7 }}>Activities will appear here</p>
+              </div>
+            ) : (
+              recentActivity.slice(0, 5).map((activity) => (
+                <div
+                  key={activity.id}
+                  className="rounded-md p-4 transition-all hover:shadow-md cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg)',
+                    border: '1px solid var(--border)'
+                  }}
                 >
-                  <ChevronLeft className="h-4 w-4" style={{ color: 'var(--text)' }} />
-                </button>
-                <button
-                  onClick={() => scrollActivity('right')}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-opacity ${
-                    showActivityNav ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-                >
-                  <ChevronRight className="h-4 w-4" style={{ color: 'var(--text)' }} />
-                </button>
-              </>
-            )}
+                  <div className="flex items-start gap-3">
+                    {/* Activity Icon */}
+                    <div
+                      className="flex-shrink-0 rounded-full p-2"
+                      style={{
+                        backgroundColor: activity.action === 'login' ? 'rgba(34, 197, 94, 0.1)' :
+                                        activity.action === 'logout' ? 'rgba(239, 68, 68, 0.1)' :
+                                        activity.action === 'created' ? 'rgba(59, 130, 246, 0.1)' :
+                                        activity.action === 'updated' ? 'rgba(245, 158, 11, 0.1)' :
+                                        'rgba(107, 114, 128, 0.1)'
+                      }}
+                    >
+                      {activity.action === 'login' ? (
+                        <CheckCircle className="h-4 w-4" style={{ color: '#22C55E' }} />
+                      ) : activity.action === 'logout' ? (
+                        <XCircle className="h-4 w-4" style={{ color: '#EF4444' }} />
+                      ) : activity.action === 'created' ? (
+                        <Plus className="h-4 w-4" style={{ color: '#3B82F6' }} />
+                      ) : activity.action === 'updated' ? (
+                        <Edit className="h-4 w-4" style={{ color: '#F59E0B' }} />
+                      ) : (
+                        <Info className="h-4 w-4" style={{ color: '#6B7280' }} />
+                      )}
+                    </div>
 
-            {/* Slider Container */}
-            <div
-              id="activity-slider"
-              className="flex gap-4 overflow-x-hidden scroll-smooth"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              <style jsx>{`
-                #activity-slider::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
-
-              {!recentActivity || recentActivity.length === 0 ? (
-                <div className="w-full rounded-lg p-4 text-center transition-colors" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-                  <p className="text-sm" style={{ color: 'var(--muted)' }}>No recent activity</p>
-                </div>
-              ) : (
-                recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex-shrink-0 rounded-lg p-4 transition-colors hover:shadow-md"
-                    style={{
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--surface)',
-                      minWidth: '280px',
-                      maxWidth: '280px'
-                    }}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <p className="text-sm font-medium line-clamp-2" style={{ color: 'var(--text)' }}>
+                    {/* Activity Details */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
                         {activity.description}
                       </p>
-                      <span className="text-xs" style={{ color: 'var(--muted)' }}>{activity.time}</span>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>{activity.time}</span>
+                        {activity.entityType && (
+                          <>
+                            <span className="text-xs" style={{ color: 'var(--border)' }}>•</span>
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full"
+                              style={{
+                                backgroundColor: 'rgba(76, 18, 161, 0.1)',
+                                color: 'var(--primary)'
+                              }}
+                            >
+                              {activity.entityType}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* Notifications */}
-        <div>
-          <h2 className="text-lg font-light mb-4" style={{ color: 'var(--text)' }}>Notifications</h2>
+        <div className="rounded-md p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <h2 className="text-lg font-bold mb-5" style={{ color: 'var(--text)' }}>Notifications</h2>
           <div className="space-y-3">
             {!notifications || notifications.length === 0 ? (
-              <div className="rounded-lg p-4 transition-colors text-center" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-                <p className="text-sm" style={{ color: 'var(--muted)' }}>No notifications</p>
+              <div className="rounded-md p-8 text-center" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <Info className="h-10 w-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--muted)' }} />
+                <p className="text-sm font-semibold" style={{ color: 'var(--muted)' }}>No notifications</p>
+                <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', opacity: 0.7 }}>You're all caught up!</p>
               </div>
             ) : (
               notifications.map((notification) => (
-              <div key={notification.id} className="rounded-lg p-4 transition-colors" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+              <div key={notification.id} className="rounded-md p-4 transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <div className="flex gap-3 items-start">
                   {getNotificationIcon(notification.type)}
                   <div className="flex-1">
@@ -328,8 +332,8 @@ export default function Dashboard() {
             )}
             <button
               onClick={() => router.push('/notifications')}
-              className="w-full text-center text-sm font-medium py-2 hover:opacity-80 transition-opacity"
-              style={{ color: '#4C12A1' }}
+              className="w-full text-center text-sm font-semibold py-3 mt-2 rounded-md hover:opacity-90 transition-all"
+              style={{ color: 'var(--primary)', backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
             >
               View All
             </button>

@@ -295,10 +295,13 @@ export default function RunAutomationPage() {
           data: data,
         });
       } else {
+        // Check if this is an AWX configuration error
+        const isAwxConfigError = data.redirectToSettings || data.requiresConfiguration;
         setResult({
           success: false,
-          message: data.error || 'Failed to run automation',
+          message: data.message || data.error || 'Failed to run automation',
           data: data,
+          redirectToSettings: isAwxConfigError,
         });
       }
     } catch (error) {
@@ -345,7 +348,7 @@ export default function RunAutomationPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px]" style={{ backgroundColor: 'var(--bg)' }}>
-        <Loader className="h-12 w-12 animate-spin mb-4" style={{ color: '#4C12A1' }} />
+        <Loader className="h-12 w-12 animate-spin mb-4" style={{ color: 'var(--primary)' }} />
         <p style={{ color: 'var(--muted)' }}>Loading automation...</p>
       </div>
     );
@@ -380,7 +383,7 @@ export default function RunAutomationPage() {
               </button>
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <Sparkles className="h-7 w-7" style={{ color: '#4C12A1' }} />
+                  <Sparkles className="h-7 w-7" style={{ color: 'var(--primary)' }} />
                   <h1 className="text-3xl font-light" style={{ color: 'var(--text)' }}>
                     {automation.name}
                   </h1>
@@ -391,7 +394,7 @@ export default function RunAutomationPage() {
                 <div className="flex items-center gap-3">
                   <span
                     className="px-3 py-1 text-xs font-normal rounded-full"
-                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                    style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                   >
                     {automation.namespace}
                   </span>
@@ -412,20 +415,20 @@ export default function RunAutomationPage() {
                     <span className="text-xs font-light mb-1" style={{ color: 'var(--muted)' }}>
                       Task ID
                     </span>
-                    <code className="text-xl font-light font-mono" style={{ color: '#4C12A1' }}>
+                    <code className="text-xl font-light font-mono" style={{ color: 'var(--primary)' }}>
                       {reservedTaskId}
                     </code>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-lg" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)' }}>
-                    <User className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                    <User className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-light mb-0.5" style={{ color: 'var(--muted)' }}>
                       Executing as
                     </p>
-                    <p className="text-base font-normal" style={{ color: '#4C12A1' }}>
+                    <p className="text-base font-normal" style={{ color: 'var(--primary)' }}>
                       {JSON.parse(localStorage.getItem('user') || '{}').name ||
                        JSON.parse(localStorage.getItem('user') || '{}').email ||
                        'Guest'}
@@ -441,7 +444,7 @@ export default function RunAutomationPage() {
         <div className="rounded-lg p-6 shadow-sm" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" style={{ color: '#4C12A1' }} />
+              <Settings2 className="h-5 w-5" style={{ color: 'var(--primary)' }} />
               <h2 className="text-xl font-light" style={{ color: 'var(--text)' }}>Configuration</h2>
               {(automation?.customBody && (showJsonEditor || templateVariables.length === 0)) && (
                 <span
@@ -454,7 +457,7 @@ export default function RunAutomationPage() {
               {automation?.customBody && templateVariables.length > 0 && !showJsonEditor && (
                 <span
                   className="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full"
-                  style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}
+                  style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}
                 >
                   Form Mode
                 </span>
@@ -494,8 +497,8 @@ export default function RunAutomationPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium hover:opacity-90"
                 style={{
                   backgroundColor: showJsonEditor ? 'rgba(59, 130, 246, 0.1)' : 'rgba(76, 18, 161, 0.1)',
-                  border: showJsonEditor ? '1px solid #3b82f6' : '1px solid #4C12A1',
-                  color: showJsonEditor ? '#3b82f6' : '#4C12A1'
+                  border: showJsonEditor ? '1px solid #3b82f6' : '1px solid var(--primary)',
+                  color: showJsonEditor ? '#3b82f6' : 'var(--primary)'
                 }}
               >
                 <FileJson className="h-4 w-4" />
@@ -532,7 +535,7 @@ export default function RunAutomationPage() {
                     border: jsonError ? '2px solid #ef4444' : '1px solid var(--border)',
                     backgroundColor: 'rgba(0, 0, 0, 0.05)',
                     color: 'var(--text)',
-                    focusRing: '#4C12A1'
+                    focusRing: 'var(--primary)'
                   }}
                   placeholder='{\n  "instance_groups": [298],\n  "extra_vars": {\n    "key": "value"\n  }\n}'
                 />
@@ -751,13 +754,13 @@ export default function RunAutomationPage() {
             <div
               className="rounded-lg p-6 shadow-md"
               style={{
-                border: result.success ? '1px solid #22c55e' : '1px solid #ef4444',
+                border: result.success ? '1px solid var(--success)' : '1px solid #ef4444',
                 backgroundColor: result.success ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)'
               }}
             >
               <div className="flex items-start gap-4">
                 {result.success ? (
-                  <CheckCircle2 className="h-8 w-8 flex-shrink-0" style={{ color: '#22c55e' }} />
+                  <CheckCircle2 className="h-8 w-8 flex-shrink-0" style={{ color: 'var(--success)' }} />
                 ) : (
                   <XCircle className="h-8 w-8 flex-shrink-0" style={{ color: '#ef4444' }} />
                 )}
@@ -770,7 +773,7 @@ export default function RunAutomationPage() {
                   </h3>
                   <p
                     className="text-sm mb-4"
-                    style={{ color: result.success ? '#16a34a' : '#dc2626' }}
+                    style={{ color: result.success ? 'var(--success)' : '#dc2626' }}
                   >
                     {result.message}
                   </p>
@@ -793,6 +796,39 @@ export default function RunAutomationPage() {
                     </div>
                   )}
 
+                  {/* Show AWX Configuration Error with Redirect Button */}
+                  {!result.success && result.redirectToSettings && (
+                    <div
+                      className="mt-4 p-4 rounded-lg"
+                      style={{
+                        backgroundColor: '#fef3c7',
+                        border: '1px solid #f59e0b'
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: '#d97706' }} />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold mb-2" style={{ color: '#92400e' }}>
+                            AWX Configuration Required
+                          </p>
+                          <p className="text-xs mb-3" style={{ color: '#78350f' }}>
+                            Please configure AWX connection settings to execute automations.
+                          </p>
+                          <button
+                            onClick={() => window.location.href = '/settings'}
+                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                            style={{
+                              backgroundColor: '#d97706',
+                              color: '#ffffff'
+                            }}
+                          >
+                            Go to Settings →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {result.data?.uniqueId && (
                     <div
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
@@ -801,7 +837,7 @@ export default function RunAutomationPage() {
                       <span className="text-sm font-normal" style={{ color: 'var(--text)' }}>
                         Run ID:
                       </span>
-                      <code className="text-sm font-mono" style={{ color: '#4C12A1' }}>
+                      <code className="text-sm font-mono" style={{ color: 'var(--primary)' }}>
                         {result.data.uniqueId}
                       </code>
                       <button
@@ -831,7 +867,7 @@ export default function RunAutomationPage() {
                 style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-center gap-2">
-                  <Info className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Info className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <span className="text-base font-normal" style={{ color: 'var(--text)' }}>
                     {showMoreInfo ? 'Hide' : 'Show'} More Information
                   </span>
@@ -852,7 +888,7 @@ export default function RunAutomationPage() {
                   className="w-full rounded-lg p-4 shadow-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
                   style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
                 >
-                  <Activity className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Activity className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
                     View in Execution History
                   </span>
@@ -862,7 +898,7 @@ export default function RunAutomationPage() {
                   className="w-full rounded-lg p-4 shadow-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
                   style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
                 >
-                  <Info className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                  <Info className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                   <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
                     View Automation Details
                   </span>
@@ -881,7 +917,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <Settings2 className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Form Schema Used</h3>
                       </div>
                       {expandedSections.formSchema ? (
@@ -911,7 +947,7 @@ export default function RunAutomationPage() {
                                     {field.key}
                                   </code>
                                 </div>
-                                <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: '#4C12A1' }}>
+                                <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}>
                                   {field.type}
                                 </span>
                               </div>
@@ -947,7 +983,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <FileJson className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <FileJson className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Custom Request Body Template</h3>
                       </div>
                       {expandedSections.customBodyTemplate ? (
@@ -986,7 +1022,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <FileJson className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <FileJson className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Actual Request Body Sent</h3>
                       </div>
                       {expandedSections.requestBody ? (
@@ -1019,7 +1055,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <Settings2 className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Extra Variables (AWX)</h3>
                       </div>
                       {expandedSections.extraVars ? (
@@ -1052,7 +1088,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <Zap className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <Zap className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Execution Result</h3>
                       </div>
                       {expandedSections.executionResult ? (
@@ -1073,7 +1109,7 @@ export default function RunAutomationPage() {
                               className="px-3 py-1 text-xs font-normal rounded-full"
                               style={{
                                 backgroundColor: result.data.status === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: result.data.status === 'success' ? '#22c55e' : '#ef4444'
+                                color: result.data.status === 'success' ? 'var(--success)' : '#ef4444'
                               }}
                             >
                               {result.data.status.toUpperCase()}
@@ -1098,7 +1134,7 @@ export default function RunAutomationPage() {
                               <span className="text-sm font-normal min-w-[140px]" style={{ color: 'var(--text)' }}>
                                 Run ID:
                               </span>
-                              <code className="text-sm font-mono" style={{ color: '#4C12A1' }}>
+                              <code className="text-sm font-mono" style={{ color: 'var(--primary)' }}>
                                 {result.data.uniqueId}
                               </code>
                             </div>
@@ -1121,7 +1157,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <FileJson className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <FileJson className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>Job Artifacts</h3>
                       </div>
                       {expandedSections.artifacts ? (
@@ -1154,7 +1190,7 @@ export default function RunAutomationPage() {
                       className="w-full p-6 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                       <div className="flex items-center gap-2">
-                        <Terminal className="h-5 w-5" style={{ color: '#4C12A1' }} />
+                        <Terminal className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                         <h3 className="text-lg font-light" style={{ color: 'var(--text)' }}>cURL Command</h3>
                       </div>
                       {expandedSections.curlCommand ? (
@@ -1169,7 +1205,7 @@ export default function RunAutomationPage() {
                           <button
                             onClick={() => handleCopy(result.data.curlCommand)}
                             className="px-4 py-2 text-xs font-normal rounded-lg transition-all hover:opacity-90 flex items-center gap-2"
-                            style={{ backgroundColor: '#4C12A1', color: 'white' }}
+                            style={{ backgroundColor: 'var(--primary)', color: 'white' }}
                           >
                             <Copy className="h-3.5 w-3.5" />
                             Copy
@@ -1177,7 +1213,7 @@ export default function RunAutomationPage() {
                         </div>
                         <pre
                           className="text-xs p-4 rounded-lg overflow-x-auto font-mono"
-                          style={{ backgroundColor: '#1e1e1e', color: '#22c55e' }}
+                          style={{ backgroundColor: '#1e1e1e', color: 'var(--success)' }}
                         >
                           <code>{result.data.curlCommand}</code>
                         </pre>

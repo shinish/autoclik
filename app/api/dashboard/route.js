@@ -129,10 +129,13 @@ export async function GET(request) {
       orderBy: { runs: 'desc' },
     });
 
-    // Check if this is first time setup
+    // Check if this is first time setup or if there are no automations
     const firstTimeSetup = await prisma.setting.findUnique({
       where: { key: 'first_time_setup' },
     });
+
+    // Show welcome message if first time setup OR no automations exist
+    const showWelcome = firstTimeSetup?.value === 'true' || totalAutomations === 0;
 
     return NextResponse.json({
       stats: {
@@ -149,7 +152,7 @@ export async function GET(request) {
         description: auto.description,
         runs: auto.runs,
       })),
-      firstTimeSetup: firstTimeSetup?.value === 'true',
+      firstTimeSetup: showWelcome,
     });
   } catch (error) {
     return createErrorResponse(error, 'Failed to fetch dashboard data');

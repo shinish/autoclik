@@ -4,7 +4,7 @@ import LayoutWrapper from '@/components/LayoutWrapper';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata = {
-  title: 'Automation Platform',
+  title: 'Autoclik v1.0',
   description: 'Automation platform with Ansible AWX integration',
 };
 

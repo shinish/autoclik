@@ -33,7 +33,7 @@ export default function DocumentationPanel({ title, sections }) {
         {isOpen ? (
           <>
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" style={{ color: '#4C12A1' }} />
+              <BookOpen className="h-5 w-5" style={{ color: 'var(--primary)' }} />
               <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>
                 {title || 'Documentation'}
               </h3>
@@ -42,7 +42,7 @@ export default function DocumentationPanel({ title, sections }) {
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 mx-auto">
-            <BookOpen className="h-5 w-5" style={{ color: '#4C12A1' }} />
+            <BookOpen className="h-5 w-5" style={{ color: 'var(--primary)' }} />
             <ChevronDown className="h-4 w-4" style={{ color: 'var(--muted)' }} />
           </div>
         )}
@@ -60,7 +60,7 @@ export default function DocumentationPanel({ title, sections }) {
                   style={{ backgroundColor: 'var(--bg)' }}
                 >
                   <div className="flex items-center gap-2">
-                    <HelpCircle className="h-4 w-4" style={{ color: '#4C12A1' }} />
+                    <HelpCircle className="h-4 w-4" style={{ color: 'var(--primary)' }} />
                     <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
                       {section.title}
                     </span>
