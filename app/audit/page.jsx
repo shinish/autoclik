@@ -683,28 +683,6 @@ export default function AuditPage() {
               Status Distribution
             </h2>
             <div className="flex items-center gap-2">
-              {/* Date Filter */}
-              <select
-                value={statusDateFilter}
-                onChange={(e) => setStatusDateFilter(e.target.value)}
-                className="px-2 py-1 rounded text-xs border appearance-none"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text)',
-                  paddingRight: '1.5rem',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.25rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1em 1em'
-                }}
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-                <option value="90days">Last 90 Days</option>
-              </select>
               {/* Namespace Filter */}
               <select
                 value={statusNamespaceFilter}
@@ -807,28 +785,6 @@ export default function AuditPage() {
               Execution Trend ({timeRange.charAt(0).toUpperCase() + timeRange.slice(1)})
             </h2>
             <div className="flex items-center gap-2">
-              {/* Date Filter */}
-              <select
-                value={executionDateFilter}
-                onChange={(e) => setExecutionDateFilter(e.target.value)}
-                className="px-2 py-1 rounded text-xs border appearance-none"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text)',
-                  paddingRight: '1.5rem',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.25rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1em 1em'
-                }}
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-                <option value="90days">Last 90 Days</option>
-              </select>
               {/* Namespace Filter */}
               <select
                 value={executionNamespaceFilter}
