@@ -82,10 +82,26 @@ If you see an error like "Prisma Client could not locate query engine for runtim
 
 If you see "attempt to write a readonly database":
 
+**On Windows:**
 1. Stop the development server
 2. Delete the `prisma/dev.db` file
 3. Run `npm run db:reset:win`
 4. Restart the server
+
+**On macOS/Linux:**
+1. Stop the development server
+2. Fix database file permissions:
+   ```bash
+   chmod 664 prisma/dev.db
+   chmod 775 prisma/
+   ```
+3. Restart the server
+
+If the issue persists, delete the database and reinitialize:
+```bash
+rm prisma/dev.db
+npm run db:reset
+```
 
 ### Port Already in Use
 
