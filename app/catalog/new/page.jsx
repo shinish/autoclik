@@ -1545,34 +1545,37 @@ export default function NewAutomationPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                Instance Group<span className="text-red-500">*</span>
-              </label>
-              <select
-                name="instanceGroupId"
-                value={formData.instanceGroupId}
-                onChange={handleInputChange}
-                className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                style={{
-                  border: '1px solid var(--border)',
-                  backgroundColor: 'var(--bg)',
-                  color: 'var(--text)',
-                  focusRing: 'var(--accent)'
-                }}
-                required
-              >
-                <option value="">Select instance group</option>
-                {instanceGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name} {group.description && `- ${group.description}`}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                Select which instance group should execute this automation
-              </p>
-            </div>
+            {/* Only show Instance Group when NOT in JSON Body mode */}
+            {formData.inputMode !== 'json' && (
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Instance Group<span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="instanceGroupId"
+                  value={formData.instanceGroupId}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--text)',
+                    focusRing: 'var(--accent)'
+                  }}
+                  required
+                >
+                  <option value="">Select instance group</option>
+                  {instanceGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} {group.description && `- ${group.description}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                  Select which instance group should execute this automation
+                </p>
+              </div>
+            )}
 
             {/* Extra Vars Section */}
             <div className="mt-6 rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}>
