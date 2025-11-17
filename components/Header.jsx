@@ -37,9 +37,15 @@ export default function Header() {
     try {
       const res = await fetch('/api/notifications');
       const data = await res.json();
-      setNotifications(data);
+      // Ensure data is an array before setting state
+      if (Array.isArray(data)) {
+        setNotifications(data);
+      } else {
+        setNotifications([]);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     }
   };
 
