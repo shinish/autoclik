@@ -269,12 +269,18 @@ export default function NewAutomationPage() {
     try {
       const res = await fetch('/api/namespaces');
       const data = await res.json();
-      setNamespaces(data);
-      if (data.length > 0) {
-        setFormData((prev) => ({ ...prev, namespace: data[0].name }));
+      // Ensure data is an array before setting state
+      if (Array.isArray(data)) {
+        setNamespaces(data);
+        if (data.length > 0) {
+          setFormData((prev) => ({ ...prev, namespace: data[0].name }));
+        }
+      } else {
+        setNamespaces([]);
       }
     } catch (error) {
       console.error('Error fetching namespaces:', error);
+      setNamespaces([]);
     }
   };
 
