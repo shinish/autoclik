@@ -88,10 +88,16 @@ export default function Sidebar() {
     try {
       const res = await fetch('/api/notifications');
       const data = await res.json();
-      const unread = data.filter(n => !n.read).length;
-      setUnreadCount(unread);
+      // Ensure data is an array before filtering
+      if (Array.isArray(data)) {
+        const unread = data.filter(n => !n.read).length;
+        setUnreadCount(unread);
+      } else {
+        setUnreadCount(0);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setUnreadCount(0);
     }
   };
 
