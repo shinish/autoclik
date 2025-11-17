@@ -32,7 +32,7 @@ export default function AuditPage() {
   const exportMenuRef = useRef(null);
   const [statusDateFilter, setStatusDateFilter] = useState('all'); // all, today, 7days, 30days, 90days
   const [statusNamespaceFilter, setStatusNamespaceFilter] = useState('all');
-  const [executionDateFilter, setExecutionDateFilter] = useState('all');
+  const [executionDateFilter, setExecutionDateFilter] = useState('90days');
   const [executionNamespaceFilter, setExecutionNamespaceFilter] = useState('all');
   const [namespaces, setNamespaces] = useState([]);
   const [allRuns, setAllRuns] = useState([]); // Store all runs for filtering
