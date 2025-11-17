@@ -26,6 +26,9 @@ export function ThemeProvider({ children }) {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+
+    // Dispatch custom event for components listening to theme changes
+    window.dispatchEvent(new Event('themechange'));
   };
 
   return (
