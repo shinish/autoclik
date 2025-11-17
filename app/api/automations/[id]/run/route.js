@@ -102,6 +102,12 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Automation not found' }, { status: 404 });
     }
 
+    // Debug: Log customBody details
+    console.log('DEBUG - customBody type:', typeof automation.customBody);
+    console.log('DEBUG - customBody value:', automation.customBody);
+    console.log('DEBUG - customBody length:', automation.customBody?.length);
+    console.log('DEBUG - customBodyOverride:', customBodyOverride);
+
     // Get user information
     const executedBy = body.user?.name || body.user?.email || 'System';
 
@@ -214,23 +220,35 @@ export async function POST(request, { params }) {
       if (customBodyOverride) {
         // User edited the JSON directly - use it as-is
         try {
-          requestBody = JSON.parse(customBodyOverride);
+          // Trim whitespace and validate it's not empty
+          const trimmedBody = customBodyOverride.trim();
+          if (!trimmedBody) {
+            throw new Error('Custom body is empty');
+          }
+          requestBody = JSON.parse(trimmedBody);
           logInfo('Using customBodyOverride from user edit', { uniqueId });
         } catch (parseError) {
           logError('Error parsing customBodyOverride', parseError);
-          throw new Error('Invalid custom body override: ' + parseError.message);
+          logError('customBodyOverride content (first 200 chars):', customBodyOverride.substring(0, 200));
+          throw new Error('Invalid custom body override: ' + parseError.message + ' - Content starts with: ' + customBodyOverride.substring(0, 50));
         }
-      } else if (automation.customBody) {
+      } else if (automation.customBody && automation.customBody.trim() && automation.customBody.trim() !== 'null') {
         // Use custom body template with variable replacement
+        // Check that customBody is not empty, not just whitespace, and not the string "null"
         try {
+          // Trim whitespace
+          const trimmedBody = automation.customBody.trim();
+
           // Parse JSON template
-          const bodyTemplate = JSON.parse(automation.customBody);
+          const bodyTemplate = JSON.parse(trimmedBody);
 
           // Deep clone and replace template variables
           requestBody = replaceTemplateVariables(bodyTemplate, parameters);
+          logInfo('Using automation.customBody template', { uniqueId });
         } catch (parseError) {
           console.error('Error parsing customBody:', parseError);
-          throw new Error('Invalid custom body configuration');
+          console.error('customBody content (first 200 chars):', automation.customBody.substring(0, 200));
+          throw new Error('Invalid custom body configuration: ' + parseError.message + ' - Content starts with: ' + automation.customBody.substring(0, 50));
         }
       } else if (automation.extraVars) {
         // Fallback to legacy extraVars (YAML)
