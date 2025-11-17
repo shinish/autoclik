@@ -126,7 +126,7 @@ export default function LoginPage() {
                       <input
                         type="text"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
                         className="flex w-full min-w-0 flex-1 rounded-lg border border-gray-300 h-14 pl-10 pr-3 py-3.5 text-base font-normal leading-normal transition-all focus:outline-none focus:ring-2 focus:ring-offset-2"
                         style={{
                           backgroundColor: '#ffffff',
@@ -235,7 +235,7 @@ export default function LoginPage() {
               >
                 Don't have an account?{' '}
                 <a
-                  href="#"
+                  href="/signup"
                   className="font-semibold hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--accent)' }}
                 >

@@ -15,9 +15,14 @@ export async function POST(request) {
       );
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Find user by email or username (samAccountName)
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email },
+          { samAccountName: email }
+        ]
+      }
     });
 
     if (!user) {
@@ -42,6 +47,34 @@ export async function POST(request) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
+      );
+    }
+
+    // Check if account is locked
+    if (user.locked) {
+      return NextResponse.json(
+        { error: 'Account is locked. Please contact administrator.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if account is enabled
+    if (!user.enabled) {
+      return NextResponse.json(
+        { error: 'Account is disabled. Please contact administrator.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if account is approved (skip check for default admin accounts)
+    const defaultAdminUsernames = ['admin', 'shinish'];
+    const isDefaultAdmin = defaultAdminUsernames.includes(user.samAccountName) ||
+                           defaultAdminUsernames.includes(user.email);
+
+    if (!user.approved && !isDefaultAdmin) {
+      return NextResponse.json(
+        { error: 'Account is pending admin approval. You will receive an email notification once approved.' },
+        { status: 403 }
       );
     }
 

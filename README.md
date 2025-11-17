@@ -1,6 +1,8 @@
-# Automation Platform
+# Autoclik v1.0
 
 A modern automation platform built with Next.js that integrates with Ansible AWX for executing runbooks and managing IT automation workflows.
+
+**Created by:** Shinish Sasidharan
 
 ## ✨ Features
 
@@ -41,23 +43,40 @@ A modern automation platform built with Next.js that integrates with Ansible AWX
 
 ## 🚀 Quick Start
 
+### Unix/Mac/Linux
 ```bash
-# Install dependencies
+# Complete setup (recommended)
+npm run setup
+
+# Or manual setup
 npm install
-
-# Setup database
-npx prisma db push
-npm run prisma:seed
-
-# Start application
+npm run db:reset
 npm run dev
+```
 
-# Run tests (optional)
-node tests/comprehensive-test.js
+### Windows
+```cmd
+# Complete setup (recommended)
+npm run setup:win
+
+# Or manual setup
+npm install
+npm run db:reset:win
+npm run dev
 ```
 
 **Access:** http://localhost:3000
-**Login:** admin / admin (⚠️ Change in production!)
+
+**Default Login:**
+- Username: `admin`
+- Password: `admin123`
+
+**Alternative Admin Account:**
+- Username: `shinish` / Password: `3Mergency!`
+
+(⚠️ Change these credentials in production!)
+
+📘 **Windows Users:** See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for detailed Windows-specific guide
 
 ## Installation
 
@@ -293,15 +312,16 @@ node tests/comprehensive-test.js
 
 ## 📝 Version
 
-**Version:** 1.0.1
+**Version:** 1.0.2
 **Status:** Production Ready ✅
-**Last Updated:** November 12, 2025
+**Last Updated:** November 18, 2025
 
-### Recent Updates (v1.0.1)
-- ✅ Enhanced artifact retrieval with complete job output and logs
-- ✅ Collapsible UI sections for better organization
-- ✅ Improved error handling for notification deletion
-- ✅ Fixed nested button validation issues
+### Recent Updates (v1.0.2)
+- ✅ Added comprehensive test data seed (5 groups, 5 users, 5 credentials, 8 activity logs)
+- ✅ Implemented dynamic logo theming (dark/light mode support)
+- ✅ Added scrollable activity log view with styled scrollbar
+- ✅ Enhanced theme switching with real-time logo updates
+- ✅ Improved database seeding with safety checks
 
 ## License
 
@@ -313,6 +333,12 @@ For issues and questions:
 1. Check [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md)
 2. Review [IMPLEMENTATION_REPORT.md](./IMPLEMENTATION_REPORT.md)
 3. Run tests: `node tests/comprehensive-test.js`
+
+---
+
+## Author
+
+**Shinish Sasidharan**
 
 ---
 

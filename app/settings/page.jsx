@@ -52,6 +52,8 @@ export default function SettingsPage() {
   const [tempEmailFrom, setTempEmailFrom] = useState('');
   const [tempEmailUsername, setTempEmailUsername] = useState('');
   const [tempEmailPassword, setTempEmailPassword] = useState('');
+  const [emailTestStatus, setEmailTestStatus] = useState(null); // null, 'testing', 'success', 'error'
+  const [emailTestMessage, setEmailTestMessage] = useState('');
 
   // Logs states
   const [logs, setLogs] = useState([]);
@@ -560,6 +562,48 @@ export default function SettingsPage() {
     setTempEmailUsername(emailUsername);
     setTempEmailPassword(emailPassword);
     setIsEditingEmail(false);
+  };
+
+  const handleTestEmail = async () => {
+    setEmailTestStatus('testing');
+    setEmailTestMessage('');
+
+    try {
+      const testEmailAddress = currentUser?.email || 'admin@example.com';
+      const response = await fetch('/api/settings/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          smtpHost: tempSmtpHost,
+          smtpPort: tempSmtpPort,
+          emailFrom: tempEmailFrom,
+          emailUsername: tempEmailUsername,
+          emailPassword: tempEmailPassword,
+          testRecipient: testEmailAddress,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setEmailTestStatus('success');
+        setEmailTestMessage(data.message || `Test email sent successfully to ${testEmailAddress}`);
+      } else {
+        setEmailTestStatus('error');
+        setEmailTestMessage(data.error || 'Failed to send test email');
+      }
+    } catch (error) {
+      setEmailTestStatus('error');
+      setEmailTestMessage(error.message || 'Error testing email configuration');
+    }
+
+    // Reset status after 5 seconds
+    setTimeout(() => {
+      setEmailTestStatus(null);
+      setEmailTestMessage('');
+    }, 5000);
   };
 
   const fetchNamespaces = async () => {
@@ -1642,9 +1686,44 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                {/* Test Email Status Message */}
+                {emailTestStatus && (
+                  <div
+                    className="rounded-lg p-4 flex items-start gap-3"
+                    style={{
+                      backgroundColor: emailTestStatus === 'success' ? 'rgba(34, 197, 94, 0.1)' : emailTestStatus === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                      border: `1px solid ${emailTestStatus === 'success' ? 'var(--success)' : emailTestStatus === 'error' ? 'var(--error)' : '#3b82f6'}`
+                    }}
+                  >
+                    {emailTestStatus === 'testing' && (
+                      <RefreshCw className="h-5 w-5 animate-spin" style={{ color: '#3b82f6' }} />
+                    )}
+                    {emailTestStatus === 'success' && (
+                      <svg className="h-5 w-5" style={{ color: 'var(--success)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {emailTestStatus === 'error' && (
+                      <AlertCircle className="h-5 w-5" style={{ color: 'var(--error)' }} />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium" style={{ color: emailTestStatus === 'success' ? 'var(--success)' : emailTestStatus === 'error' ? 'var(--error)' : '#3b82f6' }}>
+                        {emailTestStatus === 'testing' ? 'Testing email configuration...' : emailTestMessage}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 flex-wrap">
                   <Button variant="primary" onClick={handleSaveEmail}>
                     Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleTestEmail}
+                    disabled={!tempEmailEnabled || emailTestStatus === 'testing' || !tempSmtpHost || !tempSmtpPort}
+                  >
+                    {emailTestStatus === 'testing' ? 'Testing...' : 'Test Email'}
                   </Button>
                   <Button variant="outline" onClick={handleCancelEmail}>
                     Cancel
@@ -1712,8 +1791,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-light mb-1" style={{ color: '#1e40af' }}>Configuration Priority</h4>
-                  <p className="text-xs" style={{ color: '#1e40af' }}>
+                  <h4 className="text-sm font-light mb-1" style={{ color: 'var(--muted)' }}>Configuration Priority</h4>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     Settings saved here will be used for all catalog items. AWX Base URL and Token must be configured for automations to execute.
                     You can also override these settings per catalog item by specifying an API endpoint. Email notifications will be sent when enabled.
                   </p>

@@ -582,3 +582,13 @@ Check the code in `/app/api/automations/[id]/run/route.js:14-31` for the templat
 **Last Updated:** November 11, 2025
 
 ✨ **Your PowerShell test now works from the UI!**
+
+---
+
+## Author
+
+**Shinish Sasidharan**
+
+---
+
+**Autoclik v1.0 - Automation Platform**

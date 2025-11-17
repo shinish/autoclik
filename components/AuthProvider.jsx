@@ -44,21 +44,26 @@ export default function AuthProvider({ children }) {
       return; // Already redirected to login
     }
 
-    // If not authenticated and not on login page, redirect to login
-    if (!user && pathname !== '/login') {
+    // Public pages that don't require authentication
+    const publicPages = ['/login', '/signup'];
+    const isPublicPage = publicPages.includes(pathname);
+
+    // If not authenticated and not on a public page, redirect to login
+    if (!user && !isPublicPage) {
       router.replace('/login');
     }
 
-    // If authenticated and on login page, redirect to dashboard
-    if (user && pathname === '/login') {
+    // If authenticated and on login or signup page, redirect to dashboard
+    if (user && isPublicPage) {
       router.replace('/');
     }
   }, [pathname, router]);
 
   // Set up interval to check session timeout every minute
   useEffect(() => {
-    // Only check if user is logged in and not on login page
-    if (pathname === '/login') {
+    // Public pages that don't need session timeout checks
+    const publicPages = ['/login', '/signup'];
+    if (publicPages.includes(pathname)) {
       return;
     }
 
@@ -77,9 +82,12 @@ export default function AuthProvider({ children }) {
 
   // Prevent browser back button after logout
   useEffect(() => {
+    const publicPages = ['/login', '/signup'];
+    const isPublicPage = publicPages.includes(pathname);
+
     const handlePopState = () => {
       const user = localStorage.getItem('user');
-      if (!user && pathname !== '/login') {
+      if (!user && !isPublicPage) {
         // User is not authenticated, force redirect to login
         window.location.href = '/login';
       }
@@ -88,7 +96,7 @@ export default function AuthProvider({ children }) {
     window.addEventListener('popstate', handlePopState);
 
     // Add history state to prevent back button
-    if (pathname !== '/login') {
+    if (!isPublicPage) {
       window.history.pushState(null, '', window.location.href);
     }
 

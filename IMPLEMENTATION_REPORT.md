@@ -456,7 +456,8 @@ npm start
 
 **Access:**
 - Application: http://localhost:3000
-- Default credentials: admin / admin
+- Default login: admin / admin123
+- Alternative admin: shinish / 3Mergency!
 
 ---
 
@@ -814,10 +815,22 @@ node tests/comprehensive-test.js
 open http://localhost:3000
 ```
 
-**Login:** admin / admin
+**Default Login:**
+- Username: admin
+- Password: admin123
 
 ---
 
 **Report Generated:** November 11, 2025
 **Version:** 1.0.0
 **Status:** Production Ready ✅
+
+---
+
+## Author
+
+**Shinish Sasidharan**
+
+---
+
+**Autoclik v1.0 - Automation Platform**

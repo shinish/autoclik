@@ -247,7 +247,7 @@ export default function ActivityPage() {
           <p style={{ color: 'var(--muted)' }}>Loading activity...</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
           {filteredActivities.length === 0 ? (
             <div className="text-center py-12 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
               <p style={{ color: 'var(--muted)' }}>No activity found</p>

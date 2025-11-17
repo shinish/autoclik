@@ -878,3 +878,13 @@ For issues or questions, please contact your system administrator.
 ---
 
 **Last Updated:** November 11, 2025
+
+---
+
+## Author
+
+**Shinish Sasidharan**
+
+---
+
+**Autoclik v1.0 - Automation Platform**

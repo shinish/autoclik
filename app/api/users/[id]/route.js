@@ -42,6 +42,40 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
+    // Check if this is a default admin account
+    const currentUser = await prisma.user.findUnique({
+      where: { id },
+      select: { samAccountName: true, email: true, role: true, enabled: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const defaultAdminUsernames = ['admin', 'shinish'];
+    const isDefaultAdmin = defaultAdminUsernames.includes(currentUser.samAccountName) ||
+                           defaultAdminUsernames.includes(currentUser.email);
+
+    // If trying to disable/lock a default admin, check if other admins exist
+    if (isDefaultAdmin && (body.enabled === false || body.locked === true || body.role !== 'admin')) {
+      // Count other active admins (excluding this one)
+      const otherAdminsCount = await prisma.user.count({
+        where: {
+          id: { not: id },
+          role: 'admin',
+          enabled: true,
+          locked: false,
+        },
+      });
+
+      if (otherAdminsCount === 0) {
+        return NextResponse.json(
+          { error: 'Cannot disable, lock, or demote the last default admin account. At least one other admin must exist.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Generate full name from firstName and lastName if they're being updated
     const updateData = {
       firstName: body.firstName,
@@ -121,11 +155,35 @@ export async function DELETE(request, { params }) {
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { name: true },
+      select: { name: true, samAccountName: true, email: true, role: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Prevent deletion of default admin accounts
+    const defaultAdminUsernames = ['admin', 'shinish'];
+    const isDefaultAdmin = defaultAdminUsernames.includes(user.samAccountName) ||
+                           defaultAdminUsernames.includes(user.email);
+
+    if (isDefaultAdmin) {
+      // Count other active admins (excluding this one)
+      const otherAdminsCount = await prisma.user.count({
+        where: {
+          id: { not: id },
+          role: 'admin',
+          enabled: true,
+          locked: false,
+        },
+      });
+
+      if (otherAdminsCount === 0) {
+        return NextResponse.json(
+          { error: 'Cannot delete the last default admin account. At least one other admin must exist.' },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.user.delete({
