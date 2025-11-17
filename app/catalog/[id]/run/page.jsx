@@ -286,7 +286,16 @@ export default function RunAutomationPage() {
         body: JSON.stringify(requestPayload),
       });
 
-      const data = await res.json();
+      // Get response text first, then try to parse as JSON
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        console.error('Response text:', responseText.substring(0, 500));
+        throw new Error(`Invalid JSON response from server. Status: ${res.status}. Response starts with: ${responseText.substring(0, 100)}`);
+      }
 
       if (res.ok) {
         setResult({
@@ -308,8 +317,8 @@ export default function RunAutomationPage() {
       console.error('Error running automation:', error);
       setResult({
         success: false,
-        message: 'Error running automation',
-        data: { details: error.message || 'Network error or server unavailable' },
+        message: error.message || 'Network error or server unavailable',
+        data: { details: error.message, stack: error.stack },
       });
     } finally {
       setRunning(false);

@@ -506,7 +506,14 @@ export default function NewAutomationPage() {
 
     if (formData.inputMode === 'json') {
       // JSON mode - send customBody
-      requestData.customBody = formData.customBody;
+      // Minify the JSON to remove extra whitespace and ensure it's valid
+      try {
+        const parsedBody = JSON.parse(formData.customBody);
+        requestData.customBody = JSON.stringify(parsedBody); // Minified version
+      } catch (e) {
+        // If parse fails, send as-is (validation will catch it)
+        requestData.customBody = formData.customBody;
+      }
       requestData.formSchema = JSON.stringify([]); // Empty form schema
       requestData.extraVars = ''; // No extraVars
     } else {
