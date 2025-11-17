@@ -253,7 +253,10 @@ export default function SettingsPage() {
         setAwxTestMessage(`Connected successfully! AWX version: ${data.version || 'Unknown'}`);
       } else {
         setAwxTestStatus('error');
-        setAwxTestMessage(data.message || 'Connection failed');
+        const errorMsg = data.message || 'Connection failed';
+        const urlInfo = data.url ? `\nTrying to connect to: ${data.url}` : '';
+        const detailsInfo = data.details ? `\nDetails: ${data.details}` : '';
+        setAwxTestMessage(`${errorMsg}${urlInfo}${detailsInfo}`);
       }
     } catch (error) {
       setAwxTestStatus('error');

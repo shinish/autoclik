@@ -39,7 +39,8 @@ export async function POST(request) {
       return NextResponse.json({
         success: false,
         message: `AWX returned error: ${response.status} ${response.statusText}`,
-        details: errorText
+        details: errorText,
+        url: pingUrl
       }, { status: 200 }); // Return 200 so frontend can handle the error message
     }
 
@@ -54,11 +55,16 @@ export async function POST(request) {
     });
 
   } catch (error) {
+    // Build the URL for error messages
+    const cleanUrl = baseUrl ? baseUrl.replace(/\/api\/v2\/?$/, '') : '';
+    const pingUrl = cleanUrl ? `${cleanUrl}/api/v2/ping/` : 'unknown';
+
     // Handle timeout
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
       return NextResponse.json({
         success: false,
-        message: 'Connection timeout - AWX server did not respond within 5 seconds'
+        message: 'Connection timeout - AWX server did not respond within 5 seconds',
+        url: pingUrl
       }, { status: 200 });
     }
 
@@ -66,13 +72,16 @@ export async function POST(request) {
     if (error.message.includes('fetch')) {
       return NextResponse.json({
         success: false,
-        message: 'Cannot reach AWX server - check if URL is correct and AWX is running'
+        message: 'Cannot reach AWX server - check if URL is correct and AWX is running',
+        url: pingUrl,
+        details: error.message
       }, { status: 200 });
     }
 
     return NextResponse.json({
       success: false,
-      message: `Connection error: ${error.message}`
+      message: `Connection error: ${error.message}`,
+      url: pingUrl
     }, { status: 200 });
   }
 }
