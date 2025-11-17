@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Moon, Type, Lock, Hash, AlignLeft, Circle, CheckSquare, ChevronDown, ToggleLeft, Calendar, Upload, FileJson } from 'lucide-react';
+import { X, Moon, Type, Lock, Hash, AlignLeft, Circle, CheckSquare, ChevronDown, ToggleLeft, Calendar, Upload, FileJson, Plus } from 'lucide-react';
 import Button from '@/components/Button';
 import Toast from '@/components/Toast';
 
