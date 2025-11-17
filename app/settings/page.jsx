@@ -613,9 +613,15 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/namespaces');
       const data = await res.json();
-      setNamespaces(data);
+      // Ensure data is an array before setting state
+      if (Array.isArray(data)) {
+        setNamespaces(data);
+      } else {
+        setNamespaces([]);
+      }
     } catch (error) {
       console.error('Error fetching namespaces:', error);
+      setNamespaces([]);
     }
   };
 
