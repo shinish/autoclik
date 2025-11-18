@@ -95,6 +95,21 @@ export async function DELETE(request) {
       );
     }
 
+    // Check if environment is assigned to any catalogs
+    const catalogCount = await prisma.catalog.count({
+      where: { environmentId: id },
+    });
+
+    if (catalogCount > 0) {
+      return NextResponse.json(
+        {
+          error: 'Cannot delete environment',
+          message: `This environment is assigned to ${catalogCount} catalog${catalogCount > 1 ? 's' : ''}. Please reassign or delete the catalog${catalogCount > 1 ? 's' : ''} first.`
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.awxEnvironment.delete({
       where: { id },
     });

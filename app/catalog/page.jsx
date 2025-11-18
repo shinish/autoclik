@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus, X } from 'lucide-react';
+import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus, X, Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
 
@@ -161,6 +161,32 @@ export default function CatalogPage() {
       formSchema: catalog.formSchema || '',
     });
     setShowModal(true);
+  };
+
+  const handleDelete = async (catalog) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the catalog "${catalog.name}"?\n\nThis will also delete all execution history for this catalog. This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const res = await fetch(`/api/catalog/${catalog.id}?performedBy=${currentUser.email || 'system'}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete catalog');
+      }
+
+      alert('Catalog deleted successfully');
+      fetchCatalogs();
+    } catch (error) {
+      console.error('Error deleting catalog:', error);
+      alert('Failed to delete catalog: ' + error.message);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -502,6 +528,17 @@ export default function CatalogPage() {
                         title="Edit"
                       >
                         <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(catalog)}
+                        className="p-2 rounded-lg transition-all hover:scale-110"
+                        style={{
+                          backgroundColor: 'var(--bg)',
+                          color: '#ef4444'
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </td>
