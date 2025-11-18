@@ -360,7 +360,7 @@ export default function CatalogExecutePage() {
           </h2>
 
           <form onSubmit={handleExecute} className="space-y-4">
-            {formSchema.length === 0 ? (
+            {!Array.isArray(formSchema) || formSchema.length === 0 ? (
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
                 No parameters required for this catalog item.
               </p>
