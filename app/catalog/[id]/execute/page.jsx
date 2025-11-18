@@ -62,16 +62,19 @@ export default function CatalogExecutePage() {
       if (data.formSchema) {
         try {
           const schema = JSON.parse(data.formSchema);
-          setFormSchema(schema);
+          // Ensure schema is an array
+          const schemaArray = Array.isArray(schema) ? schema : [];
+          setFormSchema(schemaArray);
 
           // Initialize form values
           const initialValues = {};
-          schema.forEach(field => {
+          schemaArray.forEach(field => {
             initialValues[field.name] = field.default || '';
           });
           setFormValues(initialValues);
         } catch (e) {
           console.error('Error parsing form schema:', e);
+          setFormSchema([]);
         }
       }
     } catch (error) {
