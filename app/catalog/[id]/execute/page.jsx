@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Play, ArrowLeft, Terminal, CheckCircle, XCircle, Clock, Loader, AlertCircle, Download } from 'lucide-react';
+import { Play, ArrowLeft, Terminal, CheckCircle, XCircle, Clock, Loader, AlertCircle, Download, FileJson } from 'lucide-react';
 import Button from '@/components/Button';
 
 export default function CatalogExecutePage() {
@@ -580,6 +580,48 @@ export default function CatalogExecutePage() {
                 .replace(/<link[^>]*rel=["\']stylesheet["\'][^>]*>/gi, '')
             }}
           />
+        </div>
+      )}
+
+      {/* Artifacts Display Section */}
+      {execution?.artifacts && execution.status === 'success' && (
+        <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileJson className="h-5 w-5" style={{ color: '#22c55e' }} />
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                Artifacts
+              </h2>
+              <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#22c55e20', color: '#22c55e' }}>
+                Execution Output
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              icon={Download}
+              onClick={downloadArtifacts}
+              size="sm"
+            >
+              Download JSON
+            </Button>
+          </div>
+
+          <div
+            className="rounded-lg p-4 overflow-x-auto"
+            style={{
+              backgroundColor: '#1e1e1e',
+              border: '1px solid var(--border)',
+              maxHeight: '600px',
+              overflowY: 'scroll',
+              fontFamily: 'monospace',
+              fontSize: '13px',
+              lineHeight: '1.5'
+            }}
+          >
+            <pre style={{ margin: 0, color: '#d4d4d4', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {JSON.stringify(JSON.parse(execution.artifacts), null, 2)}
+            </pre>
+          </div>
         </div>
       )}
 
