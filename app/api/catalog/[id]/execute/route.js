@@ -274,11 +274,46 @@ ${JSON.stringify(result, null, 2).split('\n').map(line => '    ' + line).join('\
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
       } catch (e) {
+        // Build non-JSON response console output
+        const responseTime = new Date();
+        const elapsedMs = responseTime - timestamp;
+        const elapsedFormatted = elapsedMs < 1000
+          ? `${elapsedMs}ms`
+          : `${(elapsedMs / 1000).toFixed(2)}s`;
+
+        const responseSize = new Blob([responseText]).size;
+        const responseSizeFormatted = responseSize < 1024
+          ? `${responseSize} bytes`
+          : `${(responseSize / 1024).toFixed(2)} KB`;
+
+        const contentType = response.headers.get('content-type') || 'unknown';
+        const isHTML = responseText.trim().startsWith('<') || contentType.includes('html');
+
+        responseConsoleOutput = `
+✓ Request sent successfully!
+⚠️  Received non-JSON response!
+
+📥 HTTP Response Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Status Code       : ${response.status} ${response.statusText}
+  Response Time     : ${elapsedFormatted}
+  Response Size     : ${responseSizeFormatted}
+  Content-Type      : ${contentType}
+  Format            : ${isHTML ? 'HTML' : 'Plain Text'}
+  Received At       : ${responseTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 Full Response Content:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${responseText}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
         // Check if it's an HTML access denied page
         if (responseText.includes('Access Denied') || responseText.includes('<HTML>')) {
           throw new Error('Access Denied: Invalid credentials or insufficient permissions. Please check the AWX API token in environment settings.');
         }
-        throw new Error(`AWX returned non-JSON response: ${responseText.substring(0, 200)}`);
+        throw new Error(`AWX returned non-JSON response (${contentType}). See console output above for full response.`);
       }
 
       if (!response.ok) {
