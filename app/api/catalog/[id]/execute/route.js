@@ -97,7 +97,9 @@ export async function POST(request, { params }) {
 
     try {
       // Build initial console output with API request details
-      const maskedToken = awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4);
+      const maskedToken = awxToken && awxToken.length > 12
+        ? awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4)
+        : '***masked***';
       const timestamp = new Date();
       const formattedTime = timestamp.toLocaleString('en-US', {
         dateStyle: 'medium',
