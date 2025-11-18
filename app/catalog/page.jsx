@@ -233,23 +233,6 @@ export default function CatalogPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this catalog?')) return;
-
-    try {
-      const res = await fetch(`/api/catalog/${id}?performedBy=${currentUser?.email || 'system'}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to delete catalog');
-
-      fetchData(currentUser);
-    } catch (error) {
-      console.error('Error deleting catalog:', error);
-      alert('Failed to delete catalog');
-    }
-  };
-
   const handleExecute = (catalogId) => {
     router.push(`/catalog/${catalogId}/execute`);
   };
