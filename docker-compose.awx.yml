@@ -1,0 +1,112 @@
+services:
+  # PostgreSQL Database for AWX
+  postgres:
+    image: postgres:13
+    container_name: awx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: awx
+      POSTGRES_USER: awx
+      POSTGRES_PASSWORD: awxpass
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - awx-postgres-data:/var/lib/postgresql/data
+    networks:
+      - awx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for AWX
+  redis:
+    image: redis:7
+    container_name: awx-redis
+    restart: unless-stopped
+    networks:
+      - awx-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AWX Web Server
+  awx-web:
+    image: ansible/awx:23.3.1
+    container_name: awx-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    hostname: awx
+    user: root
+    environment:
+      DATABASE_USER: awx
+      DATABASE_PASSWORD: awxpass
+      DATABASE_NAME: awx
+      DATABASE_PORT: 5432
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AWX_ADMIN_USER: admin
+      AWX_ADMIN_PASSWORD: password
+      SECRET_KEY: awxsecret12345
+    ports:
+      - "8080:8052"
+    volumes:
+      - awx-projects:/var/lib/awx/projects
+      - awx-data:/var/lib/awx
+    networks:
+      - awx-network
+    command: |
+      bash -c "
+        awx-manage migrate --noinput &&
+        awx-manage create_preload_data &&
+        awx-manage provision_instance --hostname=awx &&
+        awx-manage register_queue --queuename=tower --instance_percent=100 &&
+        supervisord -c /etc/supervisord.conf
+      "
+
+  # AWX Task Runner
+  awx-task:
+    image: ansible/awx:23.3.1
+    container_name: awx-task
+    restart: unless-stopped
+    depends_on:
+      - awx-web
+      - postgres
+      - redis
+    user: root
+    environment:
+      DATABASE_USER: awx
+      DATABASE_PASSWORD: awxpass
+      DATABASE_NAME: awx
+      DATABASE_PORT: 5432
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SECRET_KEY: awxsecret12345
+    volumes:
+      - awx-projects:/var/lib/awx/projects
+      - awx-data:/var/lib/awx
+    networks:
+      - awx-network
+    command: |
+      bash -c "
+        awx-manage provision_instance --hostname=awx-task &&
+        awx-manage register_queue --queuename=tower --instance_percent=100 &&
+        supervisord -c /etc/supervisord_task.conf
+      "
+
+networks:
+  awx-network:
+    driver: bridge
+
+volumes:
+  awx-postgres-data:
+  awx-projects:
+  awx-data:

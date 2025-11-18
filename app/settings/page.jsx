@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User, FileText, AlertCircle, AlertTriangle, Info, RefreshCw, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User, FileText, AlertCircle, AlertTriangle, Info, RefreshCw, Filter, Server } from 'lucide-react';
 import Button from '@/components/Button';
 
 export default function SettingsPage() {
@@ -10,26 +10,14 @@ export default function SettingsPage() {
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [credentials, setCredentials] = useState([]);
+  const [environments, setEnvironments] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'namespace', 'user', 'group', 'permission', 'credential'
+  const [modalType, setModalType] = useState(''); // 'namespace', 'user', 'group', 'permission', 'credential', 'environment'
   const [selectedItem, setSelectedItem] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
   // General settings state
   const [showEmailPassword, setShowEmailPassword] = useState(false);
-  const [proxyTestStatus, setProxyTestStatus] = useState(null); // null, 'testing', 'success', 'error'
-  const [proxyTestMessage, setProxyTestMessage] = useState('');
-  const [proxyEnabled, setProxyEnabled] = useState(false);
-  const [proxyUrl, setProxyUrl] = useState('');
-  const [proxyPort, setProxyPort] = useState('');
-  const [isEditingProxy, setIsEditingProxy] = useState(false);
-  const [tempProxyEnabled, setTempProxyEnabled] = useState(false);
-  const [tempProxyUrl, setTempProxyUrl] = useState('');
-  const [tempProxyPort, setTempProxyPort] = useState('');
-  const [tempProxyAuthEnabled, setTempProxyAuthEnabled] = useState(false);
-  const [tempProxyUsername, setTempProxyUsername] = useState('');
-  const [tempProxyPassword, setTempProxyPassword] = useState('');
-  const [showProxyPassword, setShowProxyPassword] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('');
@@ -103,12 +91,12 @@ export default function SettingsPage() {
       setCurrentUser(JSON.parse(userData));
     }
 
-    fetchProxySettings();
     fetchEmailSettings();
     fetchNamespaces();
     fetchUsers();
     fetchGroups();
     fetchCredentials();
+    fetchEnvironments();
   }, []);
 
   // Close manager dropdown when clicking outside
@@ -124,170 +112,6 @@ export default function SettingsPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showManagerDropdown]);
-
-  const testProxyConnection = async () => {
-    setProxyTestStatus('testing');
-    setProxyTestMessage('Testing proxy connection...');
-
-    try {
-      const testUrl = tempProxyUrl || proxyUrl;
-      const testPort = tempProxyPort || proxyPort;
-
-      if (!testUrl) {
-        setProxyTestStatus('error');
-        setProxyTestMessage('Proxy URL is required');
-        return;
-      }
-
-      if (!testPort) {
-        setProxyTestStatus('error');
-        setProxyTestMessage('Proxy Port is required');
-        return;
-      }
-
-      // Test if proxy is reachable by making a test request
-      const response = await fetch('/api/proxy/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proxyUrl: testUrl,
-          proxyPort: testPort,
-          proxyAuthEnabled: tempProxyAuthEnabled,
-          proxyUsername: tempProxyUsername,
-          proxyPassword: tempProxyPassword
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setProxyTestStatus('success');
-        setProxyTestMessage('Proxy is reachable and working correctly');
-      } else {
-        setProxyTestStatus('error');
-        setProxyTestMessage(data.message || 'Proxy connection failed');
-      }
-    } catch (error) {
-      setProxyTestStatus('error');
-      setProxyTestMessage(`Connection error: ${error.message}`);
-    }
-
-    // Clear status after 5 seconds
-    setTimeout(() => {
-      setProxyTestStatus(null);
-      setProxyTestMessage('');
-    }, 5000);
-  };
-
-  const fetchProxySettings = async () => {
-    try {
-      const [enabledRes, urlRes, portRes] = await Promise.all([
-        fetch('/api/settings?key=proxy_enabled'),
-        fetch('/api/settings?key=proxy_url'),
-        fetch('/api/settings?key=proxy_port')
-      ]);
-
-      if (enabledRes.ok) {
-        const data = await enabledRes.json();
-        const enabled = data.value === 'true';
-        setProxyEnabled(enabled);
-        setTempProxyEnabled(enabled);
-      }
-
-      if (urlRes.ok) {
-        const data = await urlRes.json();
-        setProxyUrl(data.value || '');
-        setTempProxyUrl(data.value || '');
-      }
-
-      if (portRes.ok) {
-        const data = await portRes.json();
-        setProxyPort(data.value || '');
-        setTempProxyPort(data.value || '');
-      }
-    } catch (error) {
-      console.error('Error fetching proxy settings:', error);
-    }
-  };
-
-  const handleSaveProxy = async () => {
-    try {
-      await Promise.all([
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_enabled',
-            value: String(tempProxyEnabled),
-            description: 'Enable or disable proxy for API requests',
-          }),
-        }),
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_url',
-            value: tempProxyUrl,
-            description: 'Proxy server URL',
-          }),
-        }),
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_port',
-            value: tempProxyPort,
-            description: 'Proxy server port',
-          }),
-        }),
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_auth_enabled',
-            value: String(tempProxyAuthEnabled),
-            description: 'Enable proxy authentication',
-          }),
-        }),
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_username',
-            value: tempProxyUsername,
-            description: 'Proxy authentication username',
-          }),
-        }),
-        fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: 'proxy_password',
-            value: tempProxyPassword,
-            description: 'Proxy authentication password',
-          }),
-        }),
-      ]);
-
-      setProxyEnabled(tempProxyEnabled);
-      setProxyUrl(tempProxyUrl);
-      setProxyPort(tempProxyPort);
-      setIsEditingProxy(false);
-    } catch (error) {
-      console.error('Error saving proxy settings:', error);
-    }
-  };
-
-  const handleCancelProxy = () => {
-    setTempProxyEnabled(proxyEnabled);
-    setTempProxyUrl(proxyUrl);
-    setTempProxyPort(proxyPort);
-    setTempProxyAuthEnabled(false);
-    setTempProxyUsername('');
-    setTempProxyPassword('');
-    setShowProxyPassword(false);
-    setIsEditingProxy(false);
-  };
 
   const fetchEmailSettings = async () => {
     try {
@@ -477,6 +301,18 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Error fetching namespaces:', error);
       setNamespaces([]);
+    }
+  };
+
+  const fetchEnvironments = async () => {
+    try {
+      const res = await fetch('/api/settings/environments');
+      if (res.ok) {
+        const data = await res.json();
+        setEnvironments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching environments:', error);
     }
   };
 
@@ -809,6 +645,53 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCreateEnvironment = async () => {
+    try {
+      const res = await fetch('/api/settings/environments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          baseUrl: formData.baseUrl,
+          token: formData.token,
+          description: formData.description,
+        }),
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+        setShowModal(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error creating environment:', error);
+    }
+  };
+
+  const handleUpdateEnvironment = async () => {
+    try {
+      const res = await fetch('/api/settings/environments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedItem.id,
+          name: formData.name,
+          baseUrl: formData.baseUrl,
+          token: formData.token,
+          description: formData.description,
+        }),
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+        setShowModal(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error updating environment:', error);
+    }
+  };
+
   const handleDeleteNamespace = async (id) => {
     if (!confirm('Are you sure you want to delete this namespace?')) return;
 
@@ -841,19 +724,44 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteEnvironment = async (id) => {
+    if (!confirm('Are you sure you want to delete this environment?')) return;
+
+    try {
+      const res = await fetch(`/api/settings/environments?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+      }
+    } catch (error) {
+      console.error('Error deleting environment:', error);
+    }
+  };
+
   const openModal = (type, item = null) => {
     setModalType(type);
     setSelectedItem(item);
     setShowModal(true);
     if (item) {
-      setFormData({
-        name: item.name || '',
-        displayName: item.displayName || '',
-        description: item.description || '',
-        color: item.color || '#546aff',
-        email: item.email || '',
-        role: item.role || 'user',
-      });
+      if (type === 'environment') {
+        setFormData({
+          name: item.name || '',
+          baseUrl: item.baseUrl || '',
+          token: item.token || '',
+          description: item.description || '',
+        });
+      } else {
+        setFormData({
+          name: item.name || '',
+          displayName: item.displayName || '',
+          description: item.description || '',
+          color: item.color || '#546aff',
+          email: item.email || '',
+          role: item.role || 'user',
+        });
+      }
     }
   };
 
@@ -880,6 +788,8 @@ export default function SettingsPage() {
       password: '',
       sshPrivateKey: '',
       vaultPassword: '',
+      baseUrl: '',
+      token: '',
     });
   };
 
@@ -898,6 +808,12 @@ export default function SettingsPage() {
       handleUpdateGroup();
     } else if (modalType === 'credential') {
       handleCreateCredential();
+    } else if (modalType === 'environment') {
+      if (selectedItem) {
+        handleUpdateEnvironment();
+      } else {
+        handleCreateEnvironment();
+      }
     }
   };
 
@@ -964,6 +880,17 @@ export default function SettingsPage() {
                 Credentials
               </button>
               <button
+                onClick={() => setActiveTab('environments')}
+                className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80 flex items-center gap-2`}
+                style={{
+                  borderColor: activeTab === 'environments' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'environments' ? 'var(--accent)' : 'var(--muted)'
+                }}
+              >
+                <Server className="h-4 w-4" />
+                Environments
+              </button>
+              <button
                 onClick={() => setActiveTab('logs')}
                 className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80 flex items-center gap-2`}
                 style={{
@@ -991,247 +918,6 @@ export default function SettingsPage() {
 
           {/* Single Card for All Settings */}
           <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-            {/* Proxy Settings */}
-            <div className={currentUser?.role === 'admin' ? 'py-6' : 'pb-6'} style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>Proxy Configuration</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                  Configure proxy server for external API requests
-                </p>
-              </div>
-              {!isEditingProxy && (
-                <Button variant="outline" icon={Edit} onClick={() => setIsEditingProxy(true)}>
-                  Edit
-                </Button>
-              )}
-            </div>
-
-            {isEditingProxy ? (
-              <div className="space-y-4">
-                {/* Proxy Enabled Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)' }}>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Enable Proxy</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                      Use proxy server for API connections
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={tempProxyEnabled}
-                      onChange={(e) => setTempProxyEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-indigo-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
-                </div>
-
-                {/* Proxy URL */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                    Proxy URL
-                  </label>
-                  <input
-                    type="text"
-                    value={tempProxyUrl}
-                    onChange={(e) => setTempProxyUrl(e.target.value)}
-                    placeholder="http://proxy.example.com"
-                    disabled={!tempProxyEnabled}
-                    className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      focusRing: '#00A859'
-                    }}
-                  />
-                </div>
-
-                {/* Proxy Port */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                    Proxy Port
-                  </label>
-                  <input
-                    type="text"
-                    value={tempProxyPort}
-                    onChange={(e) => setTempProxyPort(e.target.value)}
-                    placeholder="8080"
-                    disabled={!tempProxyEnabled}
-                    className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      focusRing: '#00A859'
-                    }}
-                  />
-                </div>
-
-                {/* Proxy Authentication Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)', opacity: !tempProxyEnabled ? 0.5 : 1 }}>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Proxy Authentication</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                      Enable if proxy requires username and password
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={tempProxyAuthEnabled}
-                      onChange={(e) => setTempProxyAuthEnabled(e.target.checked)}
-                      disabled={!tempProxyEnabled}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-indigo-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
-                  </label>
-                </div>
-
-                {/* Proxy Username */}
-                {tempProxyAuthEnabled && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                      Proxy Username
-                    </label>
-                    <input
-                      type="text"
-                      value={tempProxyUsername}
-                      onChange={(e) => setTempProxyUsername(e.target.value)}
-                      placeholder="Enter proxy username"
-                      disabled={!tempProxyEnabled}
-                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--bg)',
-                        color: 'var(--text)',
-                        focusRing: '#00A859'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Proxy Password */}
-                {tempProxyAuthEnabled && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                      Proxy Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showProxyPassword ? "text" : "password"}
-                        value={tempProxyPassword}
-                        onChange={(e) => setTempProxyPassword(e.target.value)}
-                        placeholder="Enter proxy password"
-                        disabled={!tempProxyEnabled}
-                        className="w-full rounded-lg px-4 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                          border: '1px solid var(--border)',
-                          backgroundColor: 'var(--bg)',
-                          color: 'var(--text)',
-                          focusRing: '#00A859'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowProxyPassword(!showProxyPassword)}
-                        disabled={!tempProxyEnabled}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:opacity-70 transition-opacity disabled:opacity-30"
-                        style={{ color: 'var(--muted)' }}
-                        title={showProxyPassword ? "Hide password" : "Show password"}
-                      >
-                        {showProxyPassword ? (
-                          <EyeOff className="h-5 w-5" />
-                        ) : (
-                          <Eye className="h-5 w-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Test Proxy Button */}
-                {tempProxyEnabled && tempProxyUrl && tempProxyPort && (
-                  <div className="space-y-4">
-                    <Button
-                      variant="outline"
-                      onClick={testProxyConnection}
-                      disabled={proxyTestStatus === 'testing'}
-                    >
-                      {proxyTestStatus === 'testing' ? 'Testing...' : 'Test Proxy Connection'}
-                    </Button>
-
-                    {/* Test Status Message */}
-                    {proxyTestMessage && (
-                      <div
-                        className="rounded-lg px-4 py-3 text-sm flex items-start gap-3"
-                        style={{
-                          backgroundColor: proxyTestStatus === 'success' ? '#e6f7ed' : proxyTestStatus === 'error' ? '#fef2f2' : 'var(--bg)',
-                          border: `1px solid ${proxyTestStatus === 'success' ? '#00A859' : proxyTestStatus === 'error' ? '#dc2626' : 'var(--border)'}`,
-                          color: proxyTestStatus === 'success' ? '#065f46' : proxyTestStatus === 'error' ? '#991b1b' : 'var(--text)'
-                        }}
-                      >
-                        {proxyTestStatus === 'success' && (
-                          <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        {proxyTestStatus === 'error' && (
-                          <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        <span>{proxyTestMessage}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <Button variant="primary" onClick={handleSaveProxy}>
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancelProxy}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)' }}>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Proxy Status</p>
-                  <span
-                    className="px-3 py-1 text-xs font-semibold rounded-full"
-                    style={{
-                      backgroundColor: proxyEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                      color: proxyEnabled ? 'var(--success)' : '#6b7280'
-                    }}
-                  >
-                    {proxyEnabled ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-                {proxyEnabled && (
-                  <>
-                    <div className="rounded-lg px-4 py-3" style={{ backgroundColor: 'var(--bg)' }}>
-                      <p className="text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>Proxy URL</p>
-                      <p className="text-sm font-mono" style={{ color: 'var(--text)' }}>
-                        {proxyUrl || 'Not configured'}
-                      </p>
-                    </div>
-                    <div className="rounded-lg px-4 py-3" style={{ backgroundColor: 'var(--bg)' }}>
-                      <p className="text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>Proxy Port</p>
-                      <p className="text-sm font-mono" style={{ color: 'var(--text)' }}>
-                        {proxyPort || 'Not configured'}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            </div>
-
             {/* Email Settings */}
             <div className="py-6" style={{ borderBottom: '1px solid var(--border)' }}>
               <div className="flex items-start justify-between mb-4">
@@ -2082,6 +1768,89 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Environments Tab */}
+      {activeTab === 'environments' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Manage AWX server environments for catalog executions
+            </p>
+            <Button variant="primary" icon={Plus} onClick={() => openModal('environment')}>
+              Add Environment
+            </Button>
+          </div>
+
+          <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+            <table className="w-full">
+              <thead style={{ backgroundColor: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Base URL
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Token
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                {environments.map((environment) => (
+                  <tr key={environment.id} className="hover:opacity-90 transition-opacity">
+                    <td className="px-6 py-4 text-sm font-medium" style={{ color: 'var(--text)' }}>
+                      {environment.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.baseUrl}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.token ? '••••••••' : 'Not set'}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.description || '-'}
+                    </td>
+                    <td className="px-6 py-4 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedItem(environment);
+                          openModal('environment');
+                        }}
+                        className="p-2 rounded-lg transition-all hover:scale-110"
+                        style={{
+                          backgroundColor: 'var(--bg)',
+                          color: 'var(--accent)'
+                        }}
+                        title="Edit Environment"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEnvironment(environment.id)}
+                        className="p-2 rounded-lg transition-all hover:scale-110"
+                        style={{
+                          backgroundColor: 'var(--bg)',
+                          color: '#ef4444'
+                        }}
+                        title="Delete Environment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Logs Tab */}
       {activeTab === 'logs' && (
         <LogsTabContent
@@ -2111,6 +1880,7 @@ export default function SettingsPage() {
                 {modalType === 'group' && 'Create Group'}
                 {modalType === 'edit-group' && 'Edit Group'}
                 {modalType === 'credential' && 'Add Credential'}
+                {modalType === 'environment' && (selectedItem ? 'Edit Environment' : 'Add Environment')}
                 {modalType === 'permission' && `Manage Permissions: ${selectedItem?.displayName}`}
               </h2>
               <button
@@ -2962,6 +2732,87 @@ export default function SettingsPage() {
                 </>
               )}
 
+              {modalType === 'environment' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Name<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Production AWX"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Base URL<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.baseUrl}
+                      onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+                      placeholder="https://awx.example.com/api/v2"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      Include /api/v2 in the URL
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      API Token
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.token}
+                      onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                      placeholder="Enter AWX API token (optional)"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      Optional: Bearer token for API authentication
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Description of environment"
+                      rows={2}
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 resize-none"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+
               {modalType === 'reset-password' && (
                 <>
                   <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -3062,6 +2913,7 @@ export default function SettingsPage() {
                   {modalType === 'group' && 'Create Group'}
                   {modalType === 'edit-group' && 'Update Group'}
                   {modalType === 'credential' && 'Add Credential'}
+                  {modalType === 'environment' && (selectedItem ? 'Update Environment' : 'Add Environment')}
                 </Button>
               </div>
             )}

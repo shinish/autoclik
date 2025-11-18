@@ -265,3 +265,64 @@ model InstanceGroup {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model AwxEnvironment {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  baseUrl     String   // AWX base URL (e.g., https://awx.uat.fiscloudservices.com/api/v2)
+  token       String?  // Optional AWX API token for authentication
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  catalogs    Catalog[]
+}
+
+model Catalog {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  description       String?
+  tags              String?  // JSON array as string
+  namespaceId       String   // Assigned namespace
+
+  // Template configuration (locked after first save)
+  environmentId     String   // AWX Environment ID
+  environment       AwxEnvironment @relation(fields: [environmentId], references: [id])
+  templateId        String   // AWX Job Template ID (locked after creation)
+
+  // Request body configuration (editable)
+  customBody        String?  // JSON template for request body with variables
+  formSchema        String?  // JSON schema for input form fields
+
+  // Metadata
+  isLocked          Boolean  @default(false) // Template settings locked after first save
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  executions        CatalogExecution[]
+
+  @@index([namespaceId])
+  @@index([environmentId])
+}
+
+model CatalogExecution {
+  id           String   @id @default(uuid())
+  catalogId    String
+  catalog      Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  status       String   // pending, running, success, failed, canceled
+  parameters   String?  // JSON string of input parameters
+  consoleOutput String? // Real-time console output
+  artifacts    String?  // JSON string of artifacts/results
+  errorMessage String?
+
+  awxJobId     String?  // AWX job ID for tracking
+  executedBy   String   // User who executed
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+
+  @@index([catalogId])
+  @@index([executedBy])
+  @@index([status])
+}

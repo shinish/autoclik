@@ -1,0 +1,59 @@
+---
+- name: Test Playbook for Catalog System
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    # These variables will be passed from the catalog form
+    server_name: "{{ server_name | default('default-server') }}"
+    environment: "{{ environment | default('development') }}"
+    action: "{{ action | default('info') }}"
+
+  tasks:
+    - name: Display received parameters
+      debug:
+        msg: |
+          ========================================
+          Catalog Execution Test
+          ========================================
+          Server Name: {{ server_name }}
+          Environment: {{ environment }}
+          Action: {{ action }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          ========================================
+
+    - name: Perform action based on input
+      debug:
+        msg: "Executing {{ action }} on {{ server_name }} in {{ environment }} environment"
+
+    - name: Simulate processing time
+      pause:
+        seconds: 5
+        prompt: "Processing your request..."
+
+    - name: Generate output files (artifacts)
+      copy:
+        content: |
+          Execution Summary
+          =================
+          Server: {{ server_name }}
+          Environment: {{ environment }}
+          Action: {{ action }}
+          Status: Completed
+          Timestamp: {{ ansible_date_time.iso8601 }}
+        dest: "/tmp/catalog-output-{{ ansible_date_time.epoch }}.txt"
+      register: output_file
+
+    - name: Show completion message
+      debug:
+        msg: |
+          ✓ Task completed successfully!
+          Output file: {{ output_file.dest }}
+
+    - name: Return results
+      set_stats:
+        data:
+          execution_status: "success"
+          server_processed: "{{ server_name }}"
+          environment_used: "{{ environment }}"
+          action_performed: "{{ action }}"
+          output_location: "{{ output_file.dest }}"

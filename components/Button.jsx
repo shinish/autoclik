@@ -6,7 +6,7 @@ export default function Button({
   icon: Icon,
   ...props
 }) {
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'inline-flex items-center justify-center gap-2.5 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
 
   const variants = {
     primary: 'text-white hover:opacity-90 focus:ring-purple-600',

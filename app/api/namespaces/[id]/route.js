@@ -66,6 +66,22 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
+
+    // Check if namespace is assigned to any catalogs
+    const catalogCount = await prisma.catalog.count({
+      where: { namespaceId: id },
+    });
+
+    if (catalogCount > 0) {
+      return NextResponse.json(
+        {
+          error: 'Cannot delete namespace',
+          message: `This namespace is assigned to ${catalogCount} catalog${catalogCount > 1 ? 's' : ''}. Please reassign or delete the catalog${catalogCount > 1 ? 's' : ''} first.`
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.namespace.delete({
       where: { id },
     });
