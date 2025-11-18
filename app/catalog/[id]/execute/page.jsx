@@ -18,6 +18,9 @@ export default function CatalogExecutePage() {
   const [formSchema, setFormSchema] = useState([]);
   const [consoleOutput, setConsoleOutput] = useState('');
   const [pollingInterval, setPollingInterval] = useState(null);
+  const [customBody, setCustomBody] = useState('');
+  const [showBodyEditor, setShowBodyEditor] = useState(false);
+  const [bodyError, setBodyError] = useState('');
 
   const consoleRef = useRef(null);
 
@@ -50,6 +53,11 @@ export default function CatalogExecutePage() {
       const data = await res.json();
       setCatalog(data);
 
+      // Set custom body (if available)
+      if (data.customBody) {
+        setCustomBody(data.customBody);
+      }
+
       // Parse form schema
       if (data.formSchema) {
         try {
@@ -75,8 +83,32 @@ export default function CatalogExecutePage() {
     }
   };
 
+  const handleBodyChange = (value) => {
+    setCustomBody(value);
+    setBodyError('');
+
+    // Validate JSON
+    if (value.trim()) {
+      try {
+        JSON.parse(value);
+      } catch (e) {
+        setBodyError('Invalid JSON format');
+      }
+    }
+  };
+
   const handleExecute = async (e) => {
     e.preventDefault();
+
+    // Validate body if editing
+    if (showBodyEditor && customBody.trim()) {
+      try {
+        JSON.parse(customBody);
+      } catch (e) {
+        alert('Invalid JSON in request body. Please fix the syntax.');
+        return;
+      }
+    }
 
     try {
       setExecuting(true);
@@ -89,6 +121,7 @@ export default function CatalogExecutePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           parameters: formValues,
+          customBody: showBodyEditor ? customBody : undefined,
           executedBy: currentUser.email || 'system',
         }),
       });
@@ -345,12 +378,68 @@ export default function CatalogExecutePage() {
               ))
             )}
 
+            {/* Request Body Editor */}
+            {customBody && (
+              <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
+                    Request Body {showBodyEditor && <span className="text-xs" style={{ color: 'var(--muted)' }}>(JSON)</span>}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowBodyEditor(!showBodyEditor)}
+                    className="text-xs px-2 py-1 rounded hover:bg-opacity-10"
+                    style={{ color: 'var(--primary)', backgroundColor: showBodyEditor ? 'var(--primary)' : 'transparent' }}
+                  >
+                    {showBodyEditor ? 'Hide Editor' : 'Show Editor'}
+                  </button>
+                </div>
+
+                {showBodyEditor ? (
+                  <div>
+                    <textarea
+                      value={customBody}
+                      onChange={(e) => handleBodyChange(e.target.value)}
+                      rows={12}
+                      className="w-full rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        backgroundColor: 'var(--background)',
+                        borderColor: bodyError ? '#ef4444' : 'var(--border)',
+                        color: 'var(--text)',
+                        border: '1px solid',
+                      }}
+                      placeholder='{"key": "value"}'
+                    />
+                    {bodyError && (
+                      <p className="mt-1 text-xs text-red-500">{bodyError}</p>
+                    )}
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      Tip: Use <code className="px-1 rounded" style={{ backgroundColor: 'var(--background)' }}>{'{{form.fieldName}}'}</code> to insert form values
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-lg px-4 py-3 text-xs font-mono overflow-x-auto"
+                    style={{
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted)',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <pre>{customBody}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
                 variant="primary"
                 icon={executing ? Loader : Play}
-                disabled={executing}
+                disabled={executing || (showBodyEditor && bodyError)}
                 className="flex-1"
               >
                 {executing ? 'Executing...' : 'Execute'}

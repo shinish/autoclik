@@ -1,0 +1,175 @@
+---
+- name: Advanced Catalog Test Playbook
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    # Variables from catalog form
+    server_name: "{{ server_name | default('demo-server') }}"
+    environment: "{{ environment | default('development') }}"
+    action: "{{ action | default('status') }}"
+    cpu_cores: "{{ cpu_cores | default('4') }}"
+    memory_gb: "{{ memory_gb | default('8') }}"
+
+  tasks:
+    - name: Start execution banner
+      debug:
+        msg: |
+          ╔═══════════════════════════════════════════════════════╗
+          ║      CATALOG AUTOMATION EXECUTION STARTED            ║
+          ╚═══════════════════════════════════════════════════════╝
+
+    - name: Display execution parameters
+      debug:
+        msg: |
+          📋 Execution Parameters:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          Server Name    : {{ server_name }}
+          Environment    : {{ environment }}
+          Action         : {{ action }}
+          CPU Cores      : {{ cpu_cores }}
+          Memory (GB)    : {{ memory_gb }}
+          Timestamp      : {{ ansible_date_time.iso8601 }}
+          Executed By    : {{ ansible_user_id }}
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: Validate environment
+      assert:
+        that:
+          - environment in ['development', 'staging', 'production']
+        fail_msg: "Invalid environment: {{ environment }}"
+        success_msg: "Environment '{{ environment }}' is valid"
+
+    - name: Validate action
+      assert:
+        that:
+          - action in ['info', 'restart', 'status', 'deploy', 'backup']
+        fail_msg: "Invalid action: {{ action }}"
+        success_msg: "Action '{{ action }}' is valid"
+
+    - name: Perform action - Get Info
+      debug:
+        msg: |
+          ℹ️  Getting server information...
+          Server: {{ server_name }}
+          Status: Running
+          Uptime: {{ ansible_date_time.epoch }} seconds
+          CPU: {{ cpu_cores }} cores
+          Memory: {{ memory_gb }} GB
+      when: action == 'info'
+
+    - name: Perform action - Check Status
+      debug:
+        msg: |
+          ✓ Checking server status...
+          Server {{ server_name }} is HEALTHY
+          - All services: Running
+          - Disk usage: 45%
+          - Memory usage: 62%
+          - CPU load: 1.5
+      when: action == 'status'
+
+    - name: Perform action - Restart Service
+      debug:
+        msg: |
+          🔄 Restarting services on {{ server_name }}...
+          - Stopping services...
+          - Waiting 3 seconds...
+          - Starting services...
+          - Service restart completed!
+      when: action == 'restart'
+
+    - name: Perform action - Deploy
+      debug:
+        msg: |
+          🚀 Deploying to {{ server_name }} ({{ environment }})...
+          - Pulling latest code
+          - Installing dependencies
+          - Running migrations
+          - Restarting application
+          - Deployment successful!
+      when: action == 'deploy'
+
+    - name: Perform action - Backup
+      debug:
+        msg: |
+          💾 Creating backup of {{ server_name }}...
+          - Backup started at {{ ansible_date_time.time }}
+          - Database backed up
+          - Files backed up
+          - Backup completed!
+      when: action == 'backup'
+
+    - name: Simulate processing time
+      pause:
+        seconds: 3
+        prompt: "⏳ Processing {{ action }} on {{ server_name }}..."
+
+    - name: Generate execution report
+      set_fact:
+        execution_report:
+          server: "{{ server_name }}"
+          environment: "{{ environment }}"
+          action: "{{ action }}"
+          cpu_cores: "{{ cpu_cores }}"
+          memory_gb: "{{ memory_gb }}"
+          status: "success"
+          timestamp: "{{ ansible_date_time.iso8601 }}"
+          duration_seconds: 3
+          executor: "{{ ansible_user_id }}"
+
+    - name: Save execution report to file
+      copy:
+        content: |
+          ╔═══════════════════════════════════════════════════════╗
+          ║           EXECUTION REPORT                           ║
+          ╚═══════════════════════════════════════════════════════╝
+
+          Server Name      : {{ server_name }}
+          Environment      : {{ environment }}
+          Action Performed : {{ action }}
+          CPU Cores        : {{ cpu_cores }}
+          Memory (GB)      : {{ memory_gb }}
+
+          Status           : ✓ SUCCESS
+          Start Time       : {{ ansible_date_time.iso8601 }}
+          Duration         : 3 seconds
+          Executed By      : {{ ansible_user_id }}
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+          📝 Execution Details:
+          {{ execution_report | to_nice_json }}
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+          Report generated at: {{ ansible_date_time.iso8601 }}
+        dest: "/tmp/catalog-report-{{ server_name }}-{{ ansible_date_time.epoch }}.txt"
+      register: report_file
+
+    - name: Display success message
+      debug:
+        msg: |
+          ╔═══════════════════════════════════════════════════════╗
+          ║      ✓ EXECUTION COMPLETED SUCCESSFULLY              ║
+          ╚═══════════════════════════════════════════════════════╝
+
+          📄 Report saved to: {{ report_file.dest }}
+
+          Summary:
+          - Server: {{ server_name }}
+          - Environment: {{ environment }}
+          - Action: {{ action }}
+          - Status: SUCCESS ✓
+
+    - name: Return execution statistics
+      set_stats:
+        data:
+          execution_status: "success"
+          server_name: "{{ server_name }}"
+          environment: "{{ environment }}"
+          action: "{{ action }}"
+          cpu_cores: "{{ cpu_cores }}"
+          memory_gb: "{{ memory_gb }}"
+          report_location: "{{ report_file.dest }}"
+          execution_time: "3s"
+          timestamp: "{{ ansible_date_time.iso8601 }}"

@@ -8,7 +8,7 @@ export async function POST(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { parameters, executedBy } = body;
+    const { parameters, customBody: providedBody, executedBy } = body;
 
     // Get catalog with environment
     const catalog = await prisma.catalog.findUnique({
@@ -35,10 +35,13 @@ export async function POST(request, { params }) {
     // Build request body
     let requestBody = {};
 
-    if (catalog.customBody) {
+    // Use provided custom body if available, otherwise use catalog's default
+    const bodyToUse = providedBody || catalog.customBody;
+
+    if (bodyToUse) {
       try {
         // Parse the custom body template
-        let bodyTemplate = catalog.customBody;
+        let bodyTemplate = bodyToUse;
 
         // Replace variables in the template with actual parameter values
         if (parameters) {
