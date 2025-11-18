@@ -518,28 +518,30 @@ export default function CatalogPage() {
                       <Play className="h-4 w-4" />
                     </button>
                     {currentUser?.role === 'admin' && (
-                      <button
-                        onClick={() => openEditModal(catalog)}
-                        className="p-2 rounded-lg transition-all hover:scale-110"
-                        style={{
-                          backgroundColor: 'var(--bg)',
-                          color: 'var(--accent)'
-                        }}
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(catalog)}
-                        className="p-2 rounded-lg transition-all hover:scale-110"
-                        style={{
-                          backgroundColor: 'var(--bg)',
-                          color: '#ef4444'
-                        }}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openEditModal(catalog)}
+                          className="p-2 rounded-lg transition-all hover:scale-110"
+                          style={{
+                            backgroundColor: 'var(--bg)',
+                            color: 'var(--accent)'
+                          }}
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(catalog)}
+                          className="p-2 rounded-lg transition-all hover:scale-110"
+                          style={{
+                            backgroundColor: 'var(--bg)',
+                            color: '#ef4444'
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
