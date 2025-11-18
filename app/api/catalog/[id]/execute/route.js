@@ -95,32 +95,31 @@ export async function POST(request, { params }) {
       );
     }
 
-    try {
-      // Build initial console output with API request details
-      const maskedToken = awxToken && awxToken.length > 12
-        ? awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4)
-        : '***masked***';
-      const timestamp = new Date();
-      const formattedTime = timestamp.toLocaleString('en-US', {
-        dateStyle: 'medium',
-        timeStyle: 'long'
-      });
+    // Build initial console output with API request details (before try block so it's accessible in catch)
+    const maskedToken = awxToken && awxToken.length > 12
+      ? awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4)
+      : '***masked***';
+    const timestamp = new Date();
+    const formattedTime = timestamp.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'long'
+    });
 
-      // Parse parameters for display
-      let parametersDisplay = 'None';
-      if (parameters && Object.keys(parameters).length > 0) {
-        parametersDisplay = Object.entries(parameters)
-          .map(([key, value]) => `    • ${key}: ${value}`)
-          .join('\n');
-      }
+    // Parse parameters for display
+    let parametersDisplay = 'None';
+    if (parameters && Object.keys(parameters).length > 0) {
+      parametersDisplay = Object.entries(parameters)
+        .map(([key, value]) => `    • ${key}: ${value}`)
+        .join('\n');
+    }
 
-      // Calculate request body size
-      const bodySize = new Blob([JSON.stringify(requestBody)]).size;
-      const bodySizeFormatted = bodySize < 1024
-        ? `${bodySize} bytes`
-        : `${(bodySize / 1024).toFixed(2)} KB`;
+    // Calculate request body size
+    const bodySize = new Blob([JSON.stringify(requestBody)]).size;
+    const bodySizeFormatted = bodySize < 1024
+      ? `${bodySize} bytes`
+      : `${(bodySize / 1024).toFixed(2)} KB`;
 
-      const initialConsoleOutput = `
+    const initialConsoleOutput = `
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                          CATALOG EXECUTION STARTED                            ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
@@ -174,6 +173,7 @@ ${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).jo
 ⏳ Sending POST request...
 `;
 
+    try {
       // Update execution status to running with initial console output
       await prisma.catalogExecution.update({
         where: { id: execution.id },
