@@ -96,10 +96,45 @@ export async function POST(request, { params }) {
     }
 
     try {
-      // Update execution status to running
+      // Build initial console output with API request details
+      const maskedToken = awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4);
+      const initialConsoleOutput = `
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          CATALOG EXECUTION STARTED                            ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📋 Execution Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Catalog        : ${catalog.name}
+  Environment    : ${catalog.environment.name}
+  Template ID    : ${catalog.templateId}
+  Executed By    : ${executedBy || 'system'}
+  Timestamp      : ${new Date().toISOString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 API Request Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Method         : POST
+  URL            : ${awxUrl}
+  Authorization  : Bearer ${maskedToken}
+  Content-Type   : application/json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 Request Body:
+${JSON.stringify(requestBody, null, 2)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏳ Sending request to AWX...
+`;
+
+      // Update execution status to running with initial console output
       await prisma.catalogExecution.update({
         where: { id: execution.id },
-        data: { status: 'running' },
+        data: {
+          status: 'running',
+          consoleOutput: initialConsoleOutput,
+        },
       });
 
       const headers = {
@@ -125,9 +160,30 @@ export async function POST(request, { params }) {
       console.log('AWX Response:', responseText.substring(0, 500));
 
       let result;
+      let responseConsoleOutput = '';
 
       try {
         result = JSON.parse(responseText);
+
+        // Build response console output
+        responseConsoleOutput = `
+✓ Request sent successfully!
+
+📥 AWX Response:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Status Code    : ${response.status} ${response.statusText}
+  Job ID         : ${result.id || 'N/A'}
+  Job Type       : ${result.type || 'N/A'}
+  Job URL        : ${result.url || 'N/A'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 Full Response Body:
+${JSON.stringify(result, null, 2)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 Job execution initiated. Polling for updates...
+`;
       } catch (e) {
         // Check if it's an HTML access denied page
         if (responseText.includes('Access Denied') || responseText.includes('<HTML>')) {
@@ -140,12 +196,14 @@ export async function POST(request, { params }) {
         throw new Error(result.detail || result.error || `AWX request failed with status ${response.status}`);
       }
 
-      // Update execution with AWX job ID
+      // Update execution with AWX job ID and complete console output
+      const fullConsoleOutput = initialConsoleOutput + responseConsoleOutput;
+
       const updatedExecution = await prisma.catalogExecution.update({
         where: { id: execution.id },
         data: {
           awxJobId: result.id?.toString(),
-          consoleOutput: JSON.stringify(result),
+          consoleOutput: fullConsoleOutput,
         },
       });
 
@@ -169,12 +227,33 @@ export async function POST(request, { params }) {
     } catch (error) {
       console.error('Error executing catalog:', error);
 
-      // Update execution with error
+      // Build error console output
+      const errorConsoleOutput = initialConsoleOutput + `
+❌ Execution Failed!
+
+🚨 Error Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Error Type     : ${error.name || 'Error'}
+  Error Message  : ${error.message}
+  Timestamp      : ${new Date().toISOString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Troubleshooting Tips:
+  • Verify AWX token is valid and has Write scope
+  • Check that the template ID exists in AWX
+  • Ensure AWX server is running and accessible
+  • Review the request body for any syntax errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+      // Update execution with error and console output
       await prisma.catalogExecution.update({
         where: { id: execution.id },
         data: {
           status: 'failed',
           errorMessage: error.message,
+          consoleOutput: errorConsoleOutput,
           completedAt: new Date(),
         },
       });
