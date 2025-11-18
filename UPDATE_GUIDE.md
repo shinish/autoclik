@@ -40,7 +40,17 @@
    npm install
    ```
 
-6. **Restart the development server**
+6. **Run database migrations** (IMPORTANT for catalog feature!)
+   ```bash
+   npm run db:reset
+   ```
+   This will:
+   - Create the Catalog and CatalogExecution tables
+   - Seed default namespaces (Default, Infrastructure, Deployment, Monitoring)
+   - Seed AWX environment from .env file
+   - Create admin users (shinish / 3Mergency!)
+
+7. **Restart the development server**
    ```bash
    npm run dev
    ```
@@ -79,7 +89,17 @@
    npm install
    ```
 
-6. **Restart the development server**
+6. **Run database migrations** (IMPORTANT for catalog feature!)
+   ```bash
+   npm run db:reset
+   ```
+   This will:
+   - Create the Catalog and CatalogExecution tables
+   - Seed default namespaces (Default, Infrastructure, Deployment, Monitoring)
+   - Seed AWX environment from .env file
+   - Create admin users (shinish / 3Mergency!)
+
+7. **Restart the development server**
    ```bash
    npm run dev
    ```
