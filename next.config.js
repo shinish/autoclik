@@ -3,11 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone', // Enable standalone build for minimal deployment
 
-  // Windows compatibility
-  experimental: {
-    esmExternals: 'loose',
-  },
-
   // Webpack configuration for Windows path handling
   webpack: (config, { isServer, dev }) => {
     // Handle Windows path separators
