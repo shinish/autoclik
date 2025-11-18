@@ -333,6 +333,22 @@ export default function CatalogExecutePage() {
 
   return (
     <div className="space-y-6">
+      <style jsx>{`
+        .console-output::-webkit-scrollbar {
+          width: 8px;
+        }
+        .console-output::-webkit-scrollbar-track {
+          background: #2a2a2a;
+          border-radius: 4px;
+        }
+        .console-output::-webkit-scrollbar-thumb {
+          background: #00ff00;
+          border-radius: 4px;
+        }
+        .console-output::-webkit-scrollbar-thumb:hover {
+          background: #00cc00;
+        }
+      `}</style>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -507,16 +523,24 @@ export default function CatalogExecutePage() {
 
           <div
             ref={consoleRef}
-            className="rounded-lg p-4 font-mono text-xs overflow-y-auto"
+            className="console-output rounded-lg p-4 font-mono text-xs overflow-y-auto"
             style={{
               backgroundColor: '#1a1a1a',
               color: '#00ff00',
               height: '500px',
               whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all'
+              wordBreak: 'break-all',
+              overflowY: 'scroll',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#00ff00 #2a2a2a'
             }}
+            dangerouslySetInnerHTML={
+              consoleOutput && consoleOutput.includes('<html') || consoleOutput && consoleOutput.includes('<!DOCTYPE')
+                ? { __html: consoleOutput.replace(/<img[^>]*>/gi, '<span style="color: #888;">[Image removed]</span>').replace(/<script[^>]*>.*?<\/script>/gi, '') }
+                : undefined
+            }
           >
-            {consoleOutput || 'No output yet. Execute the catalog to see results.'}
+            {!(consoleOutput && (consoleOutput.includes('<html') || consoleOutput.includes('<!DOCTYPE'))) && (consoleOutput || 'No output yet. Execute the catalog to see results.')}
           </div>
         </div>
       </div>
