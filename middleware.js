@@ -1,38 +1,61 @@
 import { NextResponse } from 'next/server';
 
-// Middleware function for Next.js
+// Middleware function for Next.js with Windows compatibility
 export function middleware(request) {
-  // Handle preflight requests
-  if (request.method === 'OPTIONS') {
-    return new NextResponse(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
+  try {
+    // Get the pathname from the request
+    const { pathname } = request.nextUrl;
+
+    // Skip middleware for static files and special routes
+    if (
+      pathname.startsWith('/_next/static') ||
+      pathname.startsWith('/_next/image') ||
+      pathname.startsWith('/favicon.ico') ||
+      pathname.includes('.')
+    ) {
+      return NextResponse.next();
+    }
+
+    // Handle preflight requests (OPTIONS)
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept',
+          'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Credentials': 'true',
+        },
+      });
+    }
+
+    // Create response and add CORS headers
+    const response = NextResponse.next();
+
+    // Set CORS headers
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+
+    return response;
+  } catch (error) {
+    // Log error and return a simple response
+    console.error('Middleware error:', error);
+    return NextResponse.next();
   }
-
-  // Clone the response and add CORS headers
-  const response = NextResponse.next();
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-
-  return response;
 }
 
-// Apply middleware to all routes (both API and pages)
+// Apply middleware to API routes only to avoid conflicts on Windows
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
+    '/api/:path*',
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
