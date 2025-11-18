@@ -21,8 +21,9 @@
   --sidebar-bg: #f3f4f6;      /* lighter sidebar background for light mode */
   --text:      #000000;       /* Tertiary - Black */
   --muted:     var(--gray);   /* Secondary gray for muted text */
-  --primary:   #c41e3a;       /* Fire red - darker crimson */
-  --secondary: var(--raspberry); /* Secondary brand color */
+  --primary:   var(--eggplant); /* Primary brand color */
+  --secondary: linear-gradient(135deg, var(--eggplant) 0%, var(--gray) 100%); /* Eggplant to gray gradient */
+  --secondary-solid: #5a4370; /* Blended eggplant and gray for solid backgrounds */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
   --warning:   #f59e0b;
@@ -43,7 +44,7 @@
   /* Legacy Variables (for compatibility) */
   --background: #ffffff;
   --foreground: #000000;
-  --primary-hover: #a01628;
+  --primary-hover: #3a1549;
   --fis-green: var(--core-green);
 }
 
@@ -62,8 +63,9 @@
   --sidebar-bg: #111827;      /* Darker sidebar background for dark mode */
   --text:      #ffffff;       /* Tertiary - White */
   --muted:     var(--gray);   /* Lightened gray for muted text */
-  --primary:   #e63946;       /* Fire red - slightly brighter for dark mode */
-  --secondary: var(--raspberry); /* Secondary brand color */
+  --primary:   var(--eggplant); /* Primary brand color */
+  --secondary: linear-gradient(135deg, var(--eggplant) 0%, var(--gray) 100%); /* Eggplant to gray gradient */
+  --secondary-solid: #8a6d9d; /* Blended eggplant and gray for dark mode */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
   --warning:   #fbbf24;
@@ -73,7 +75,7 @@
   /* Legacy Variables (for compatibility) */
   --background: #000000;
   --foreground: #ffffff;
-  --primary-hover: #ff4757;
+  --primary-hover: #9d4dbd;
   --fis-green: var(--core-green);
 }
 

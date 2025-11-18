@@ -16,16 +16,7 @@ export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState(null);
 
   // General settings state
-  const [baseUrl, setBaseUrl] = useState('');
-  const [isEditingBaseUrl, setIsEditingBaseUrl] = useState(false);
-  const [tempBaseUrl, setTempBaseUrl] = useState('');
-  const [awxToken, setAwxToken] = useState('');
-  const [isEditingAwxToken, setIsEditingAwxToken] = useState(false);
-  const [tempAwxToken, setTempAwxToken] = useState('');
-  const [showAwxToken, setShowAwxToken] = useState(false);
   const [showEmailPassword, setShowEmailPassword] = useState(false);
-  const [awxTestStatus, setAwxTestStatus] = useState(null); // null, 'testing', 'success', 'error'
-  const [awxTestMessage, setAwxTestMessage] = useState('');
   const [proxyTestStatus, setProxyTestStatus] = useState(null); // null, 'testing', 'success', 'error'
   const [proxyTestMessage, setProxyTestMessage] = useState('');
   const [proxyEnabled, setProxyEnabled] = useState(false);
@@ -112,8 +103,6 @@ export default function SettingsPage() {
       setCurrentUser(JSON.parse(userData));
     }
 
-    fetchBaseUrl();
-    fetchAwxToken();
     fetchProxySettings();
     fetchEmailSettings();
     fetchNamespaces();
@@ -135,139 +124,6 @@ export default function SettingsPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showManagerDropdown]);
-
-  const fetchBaseUrl = async () => {
-    try {
-      const res = await fetch('/api/settings?key=default_api_endpoint');
-      if (res.ok) {
-        const data = await res.json();
-        setBaseUrl(data.value || '');
-        setTempBaseUrl(data.value || '');
-      }
-    } catch (error) {
-      console.error('Error fetching base URL:', error);
-    }
-  };
-
-  const handleSaveBaseUrl = async () => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: 'default_api_endpoint',
-          value: tempBaseUrl,
-          description: 'Default AWX API endpoint URL for catalog items',
-        }),
-      });
-
-      if (res.ok) {
-        setBaseUrl(tempBaseUrl);
-        setIsEditingBaseUrl(false);
-      }
-    } catch (error) {
-      console.error('Error saving base URL:', error);
-    }
-  };
-
-  const handleCancelBaseUrl = () => {
-    setTempBaseUrl(baseUrl);
-    setIsEditingBaseUrl(false);
-  };
-
-  const fetchAwxToken = async () => {
-    try {
-      const res = await fetch('/api/settings?key=awx_token');
-      if (res.ok) {
-        const data = await res.json();
-        setAwxToken(data.value || '');
-        setTempAwxToken(data.value || '');
-      }
-    } catch (error) {
-      console.error('Error fetching AWX token:', error);
-    }
-  };
-
-  const handleSaveAwxToken = async () => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: 'awx_token',
-          value: tempAwxToken,
-          description: 'AWX/Ansible Tower API token for authentication',
-        }),
-      });
-
-      if (res.ok) {
-        setAwxToken(tempAwxToken);
-        setIsEditingAwxToken(false);
-      }
-    } catch (error) {
-      console.error('Error saving AWX token:', error);
-    }
-  };
-
-  const handleCancelAwxToken = () => {
-    setTempAwxToken(awxToken);
-    setIsEditingAwxToken(false);
-  };
-
-  const testAwxConnection = async () => {
-    setAwxTestStatus('testing');
-    setAwxTestMessage('Testing connection...');
-
-    try {
-      // Use current values (baseUrl and awxToken)
-      const testUrl = baseUrl || tempBaseUrl;
-      const testToken = awxToken || tempAwxToken;
-
-      if (!testUrl) {
-        setAwxTestStatus('error');
-        setAwxTestMessage('Base URL is required');
-        return;
-      }
-
-      if (!testToken) {
-        setAwxTestStatus('error');
-        setAwxTestMessage('AWX Token is required');
-        return;
-      }
-
-      // Test the connection by calling AWX ping endpoint
-      const response = await fetch('/api/awx/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          baseUrl: testUrl,
-          token: testToken
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setAwxTestStatus('success');
-        setAwxTestMessage(`Connected successfully! AWX version: ${data.version || 'Unknown'}`);
-      } else {
-        setAwxTestStatus('error');
-        const errorMsg = data.message || 'Connection failed';
-        const urlInfo = data.url ? `\nTrying to connect to: ${data.url}` : '';
-        const detailsInfo = data.details ? `\nDetails: ${data.details}` : '';
-        setAwxTestMessage(`${errorMsg}${urlInfo}${detailsInfo}`);
-      }
-    } catch (error) {
-      setAwxTestStatus('error');
-      setAwxTestMessage(`Connection error: ${error.message}`);
-    }
-
-    // Clear status after 5 seconds
-    setTimeout(() => {
-      setAwxTestStatus(null);
-      setAwxTestMessage('');
-    }, 5000);
-  };
 
   const testProxyConnection = async () => {
     setProxyTestStatus('testing');
@@ -1135,173 +991,13 @@ export default function SettingsPage() {
 
           {/* Single Card for All Settings */}
           <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-            {/* Admin-Only Settings */}
-            {currentUser?.role === 'admin' && (
-            <>
-            {/* Base URL Setting */}
-            <div className="pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>AWX Base URL</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                  Base URL for your AWX/Ansible Tower instance API endpoint
-                </p>
-              </div>
-              {!isEditingBaseUrl && (
-                <Button variant="outline" icon={Edit} onClick={() => setIsEditingBaseUrl(true)}>
-                  Edit
-                </Button>
-              )}
-            </div>
-
-            {isEditingBaseUrl ? (
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={tempBaseUrl}
-                  onChange={(e) => setTempBaseUrl(e.target.value)}
-                  placeholder="https://awx.example.com/api/v2"
-                  className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--text)',
-                    focusRing: '#00A859'
-                  }}
-                />
-                <div className="flex gap-3">
-                  <Button variant="primary" onClick={handleSaveBaseUrl}>
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancelBaseUrl}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg px-4 py-3 font-mono text-sm" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
-                {baseUrl || 'Not configured'}
-              </div>
-            )}
-            </div>
-
-            {/* AWX Token Setting - Admin Only */}
-            <div className="py-6" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>AWX API Token</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                  Authentication token for AWX/Ansible Tower API access (Bearer token)
-                </p>
-              </div>
-              {!isEditingAwxToken && (
-                <Button variant="outline" icon={Edit} onClick={() => setIsEditingAwxToken(true)}>
-                  Edit
-                </Button>
-              )}
-            </div>
-
-            {isEditingAwxToken ? (
-              <div className="space-y-4">
-                <div className="relative">
-                  <input
-                    type={showAwxToken ? "text" : "password"}
-                    value={tempAwxToken}
-                    onChange={(e) => setTempAwxToken(e.target.value)}
-                    placeholder="Enter your AWX API token"
-                    className="w-full rounded-lg px-4 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                    style={{
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      focusRing: '#00A859'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAwxToken(!showAwxToken)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--muted)' }}
-                    title={showAwxToken ? "Hide token" : "Show token"}
-                  >
-                    {showAwxToken ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-                <div className="flex gap-3">
-                  <Button variant="primary" onClick={handleSaveAwxToken}>
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancelAwxToken}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg px-4 py-3 font-mono text-sm" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
-                {awxToken ? '••••••••••••••••' : 'Not configured'}
-              </div>
-            )}
-            </div>
-
-            {/* AWX Connection Test */}
-            <div className="py-6" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>Test AWX Connection</h3>
-                  <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                    Verify AWX server connectivity and authentication
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Button
-                  variant="outline"
-                  onClick={testAwxConnection}
-                  disabled={awxTestStatus === 'testing' || (!baseUrl && !tempBaseUrl) || (!awxToken && !tempAwxToken)}
-                >
-                  {awxTestStatus === 'testing' ? 'Testing...' : 'Test Connection'}
-                </Button>
-
-                {/* Test Status Message */}
-                {awxTestMessage && (
-                  <div
-                    className="rounded-lg px-4 py-3 text-sm flex items-start gap-3"
-                    style={{
-                      backgroundColor: awxTestStatus === 'success' ? '#e6f7ed' : awxTestStatus === 'error' ? '#fef2f2' : 'var(--bg)',
-                      border: `1px solid ${awxTestStatus === 'success' ? '#00A859' : awxTestStatus === 'error' ? '#dc2626' : 'var(--border)'}`,
-                      color: awxTestStatus === 'success' ? '#065f46' : awxTestStatus === 'error' ? '#991b1b' : 'var(--text)'
-                    }}
-                  >
-                    {awxTestStatus === 'success' && (
-                      <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {awxTestStatus === 'error' && (
-                      <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    <span>{awxTestMessage}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            </>
-            )}
-
             {/* Proxy Settings */}
             <div className={currentUser?.role === 'admin' ? 'py-6' : 'pb-6'} style={{ borderBottom: '1px solid var(--border)' }}>
               <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-light" style={{ color: 'var(--text)' }}>Proxy Configuration</h3>
                 <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                  Configure proxy server for external API requests (AWX/Ansible Tower)
+                  Configure proxy server for external API requests
                 </p>
               </div>
               {!isEditingProxy && (

@@ -18,7 +18,7 @@ export default function Button({
 
   const variantStyles = {
     primary: { backgroundColor: 'var(--primary)', color: '#FFFFFF' },
-    secondary: { backgroundColor: 'var(--secondary)', color: '#FFFFFF', border: '1px solid var(--secondary)' },
+    secondary: { background: 'var(--secondary)', color: '#FFFFFF', border: 'none' },
     outline: { backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
     ghost: { backgroundColor: 'transparent', color: 'var(--text)' },
     danger: { backgroundColor: 'var(--danger)', color: '#FFFFFF' },
