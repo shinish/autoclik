@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Zap,
   Clock,
-  BookOpen,
   FileText,
   Settings,
   User,
@@ -22,7 +21,6 @@ import { getCurrentUser, forceLogout } from '@/lib/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'user'] },
-  { name: 'Catalog', href: '/catalog', icon: BookOpen, roles: ['admin', 'user'] },
   { name: 'Schedules', href: '/schedules', icon: Clock, roles: ['admin', 'user'] },
   { name: 'Activity', href: '/activity', icon: Activity, roles: ['admin'] },
   { name: 'Audit Report', href: '/audit', icon: BarChart3, roles: ['admin'] },

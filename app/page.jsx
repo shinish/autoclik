@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Mail, CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Play, Edit, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Edit, X, Plus } from 'lucide-react';
 import { StatCard } from '@/components/Card';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
@@ -18,9 +18,6 @@ export default function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [pinnedAutomations, setPinnedAutomations] = useState([]);
-  const [activityScrollPosition, setActivityScrollPosition] = useState(0);
-  const [showActivityNav, setShowActivityNav] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
@@ -44,7 +41,6 @@ export default function Dashboard() {
       setStats(data.stats);
       setRecentActivity(data.recentActivity);
       setNotifications(data.notifications);
-      setPinnedAutomations(data.pinnedAutomations);
       setShowWelcome(data.firstTimeSetup || false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -71,33 +67,6 @@ export default function Dashboard() {
       setShowWelcome(false);
     } catch (error) {
       console.error('Error dismissing welcome message:', error);
-    }
-  };
-
-  const scrollActivity = (direction) => {
-    const container = document.getElementById('activity-slider');
-    if (!container) return;
-
-    const scrollAmount = 300; // pixels to scroll
-    const newPosition = direction === 'left'
-      ? Math.max(0, activityScrollPosition - scrollAmount)
-      : activityScrollPosition + scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: 'smooth'
-    });
-    setActivityScrollPosition(newPosition);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--accent)' }} />;
-      case 'failed':
-        return <XCircle className="h-5 w-5" style={{ color: '#DC2626' }} />;
-      default:
-        return <Info className="h-5 w-5" style={{ color: '#1B1B6F' }} />;
     }
   };
 
@@ -143,15 +112,15 @@ export default function Dashboard() {
               <ul className="space-y-2 text-sm" style={{ color: 'var(--text)' }}>
                 <li className="flex items-center">
                   <span className="mr-2">•</span>
-                  <span>Adding your first automation to the catalog</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
                   <span>Configuring AWX connection in Settings</span>
                 </li>
                 <li className="flex items-center">
                   <span className="mr-2">•</span>
                   <span>Creating additional user accounts</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  <span>Exploring the automation platform features</span>
                 </li>
               </ul>
               <div className="mt-4 flex gap-3">
@@ -159,19 +128,19 @@ export default function Dashboard() {
                   variant="primary"
                   onClick={() => {
                     dismissWelcome();
-                    router.push('/catalog/new');
+                    router.push('/settings');
                   }}
                 >
-                  Add First Automation
+                  Go to Settings
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
                     dismissWelcome();
-                    router.push('/settings');
+                    router.push('/schedules');
                   }}
                 >
-                  Go to Settings
+                  View Schedules
                 </Button>
               </div>
             </div>
@@ -201,22 +170,7 @@ export default function Dashboard() {
       <div>
         <h2 className="text-lg font-light mb-4" style={{ color: 'var(--text)' }}>Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          {isAdmin && (
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={() => router.push('/catalog/new')}
-            >
-              Add New Catalog Item
-            </Button>
-          )}
-          <Button variant="outline" icon={Search} onClick={() => router.push('/catalog')}>
-            Search Catalog
-          </Button>
-          <Button variant="outline" icon={Mail} onClick={() => router.push('/catalog')}>
-            My Drafts
-          </Button>
-          <Button variant="outline" icon={CalendarClock} onClick={() => router.push('/schedules')}>
+          <Button variant="primary" icon={CalendarClock} onClick={() => router.push('/schedules')}>
             Create Schedule
           </Button>
         </div>
@@ -341,33 +295,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Pinned Automations */}
-      <div>
-        <h2 className="text-lg font-light mb-4" style={{ color: 'var(--text)' }}>Pinned Automations</h2>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {!pinnedAutomations || pinnedAutomations.length === 0 ? (
-            <div className="col-span-2 rounded-lg p-6 text-center transition-colors" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>No pinned automations</p>
-            </div>
-          ) : (
-            pinnedAutomations.map((automation) => (
-            <div key={automation.id} className="rounded-lg p-6 transition-colors" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>{automation.name}</h3>
-              <p className="mt-2 text-sm" style={{ color: 'var(--muted)' }}>{automation.description}</p>
-              <p className="mt-3 text-xs" style={{ color: 'var(--muted)' }}>{automation.runs} runs</p>
-              <div className="mt-4 flex gap-2">
-                <Button variant="primary" size="sm" icon={Play} onClick={() => router.push(`/catalog/${automation.id}`)}>
-                  Run
-                </Button>
-                <Button variant="ghost" size="sm" icon={Edit} onClick={() => router.push(`/catalog/${automation.id}`)}>
-                  Edit
-                </Button>
-              </div>
-            </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }

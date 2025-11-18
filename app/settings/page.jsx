@@ -101,7 +101,6 @@ export default function SettingsPage() {
 
   const modules = [
     { name: 'dashboard', label: 'Dashboard' },
-    { name: 'catalog', label: 'Catalog' },
     { name: 'schedules', label: 'Schedules' },
     { name: 'settings', label: 'Settings' },
   ];

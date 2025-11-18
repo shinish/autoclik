@@ -21,7 +21,7 @@
   --sidebar-bg: #f3f4f6;      /* lighter sidebar background for light mode */
   --text:      #000000;       /* Tertiary - Black */
   --muted:     var(--gray);   /* Secondary gray for muted text */
-  --primary:   var(--eggplant); /* Primary brand color */
+  --primary:   #c41e3a;       /* Fire red - darker crimson */
   --secondary: var(--raspberry); /* Secondary brand color */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
@@ -43,7 +43,7 @@
   /* Legacy Variables (for compatibility) */
   --background: #ffffff;
   --foreground: #000000;
-  --primary-hover: #3a1549;
+  --primary-hover: #a01628;
   --fis-green: var(--core-green);
 }
 
@@ -62,7 +62,7 @@
   --sidebar-bg: #111827;      /* Darker sidebar background for dark mode */
   --text:      #ffffff;       /* Tertiary - White */
   --muted:     var(--gray);   /* Lightened gray for muted text */
-  --primary:   var(--eggplant); /* Primary brand color */
+  --primary:   #e63946;       /* Fire red - slightly brighter for dark mode */
   --secondary: var(--raspberry); /* Secondary brand color */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
@@ -73,7 +73,7 @@
   /* Legacy Variables (for compatibility) */
   --background: #000000;
   --foreground: #ffffff;
-  --primary-hover: #9d4dbd;
+  --primary-hover: #ff4757;
   --fis-green: var(--core-green);
 }
 

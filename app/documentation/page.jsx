@@ -29,11 +29,10 @@ export default function DocumentationPage() {
               <p>Autoclik is an enterprise automation platform that helps you create, manage, and execute automated workflows across your organization.</p>
               <h4 className="font-light mt-4">Key Features:</h4>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Catalog of reusable playbooks</li>
                 <li>Schedule recurring tasks</li>
-                <li>Form-based catalog designer</li>
                 <li>User and group management</li>
                 <li>Namespace organization</li>
+                <li>Activity monitoring and audit logs</li>
               </ul>
             </div>
           )
@@ -43,102 +42,11 @@ export default function DocumentationPage() {
           content: (
             <div className="space-y-3">
               <ol className="list-decimal list-inside space-y-3 ml-4">
-                <li><strong>Browse the Catalog:</strong> Navigate to the Catalog to see all available playbooks.</li>
-                <li><strong>Run a Playbook:</strong> Click on any catalog card to execute it with your parameters.</li>
                 <li><strong>Create a Schedule:</strong> Go to Schedules to set up recurring tasks.</li>
+                <li><strong>Monitor Activity:</strong> View execution logs and track automation runs.</li>
                 <li><strong>Manage Settings:</strong> Configure users, groups, namespaces, and credentials in Settings.</li>
+                <li><strong>Review Audit Reports:</strong> Analyze execution trends and statistics.</li>
               </ol>
-            </div>
-          )
-        }
-      ]
-    },
-    {
-      id: 'catalog',
-      title: 'Catalog',
-      icon: BookOpen,
-      items: [
-        {
-          title: 'Browsing Catalog',
-          content: (
-            <div className="space-y-3">
-              <p>The Catalog is your central hub for discovering and running playbooks across your organization.</p>
-              <h4 className="font-light mt-4">Features:</h4>
-              <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong>Search:</strong> Find catalog items by name, description, or namespace</li>
-                <li><strong>Categories:</strong> Filter by namespace using the category pills</li>
-                <li><strong>Quick Run:</strong> Click any card or "Run" button to execute</li>
-                <li><strong>Badges:</strong> See which items are Featured or New</li>
-              </ul>
-            </div>
-          )
-        },
-        {
-          title: 'Running Playbooks',
-          content: (
-            <div className="space-y-3">
-              <p>To run a playbook:</p>
-              <ol className="list-decimal list-inside space-y-2 ml-4">
-                <li>Click on a catalog card in the Catalog</li>
-                <li>Fill in the required parameters in the form</li>
-                <li>Click "Execute Playbook" to run</li>
-                <li>View the execution results</li>
-              </ol>
-              <p className="mt-4">Fields marked with <span className="text-red-500">*</span> are required.</p>
-            </div>
-          )
-        }
-      ]
-    },
-    {
-      id: 'creatingCatalog',
-      title: 'Creating Catalog Items',
-      icon: Zap,
-      items: [
-        {
-          title: 'Create New Catalog Item',
-          content: (
-            <div className="space-y-3">
-              <p>Create new catalog items that can be shared across your organization in the Catalog.</p>
-              <h4 className="font-semibold mt-4">To create a new catalog item:</h4>
-              <ol className="list-decimal list-inside space-y-2 ml-4">
-                <li>Navigate to the Catalog page</li>
-                <li>Click "Create Catalog" button in the top-right corner</li>
-                <li><strong>Step 1 - Basic Info:</strong> Enter name, select namespace, add description, keywords, and tags</li>
-                <li><strong>Step 2 - Form Designer:</strong> Design the input form using drag-and-drop components</li>
-                <li><strong>Step 3 - Integration:</strong> Configure Base URL (from Settings), Template ID, Inventory ID, and variable mappings</li>
-                <li>Click "Create Catalog" to save</li>
-              </ol>
-              <h4 className="font-semibold mt-4">Form Field Components:</h4>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Text Input:</strong> Single-line text field</li>
-                <li><strong>Text Area:</strong> Multi-line text input</li>
-                <li><strong>Number:</strong> Numeric input field</li>
-                <li><strong>Select/Dropdown:</strong> Choose from predefined options</li>
-                <li><strong>Checkbox:</strong> Boolean true/false selection</li>
-                <li><strong>Toggle:</strong> On/off switch</li>
-                <li><strong>Date Picker:</strong> Calendar date selection</li>
-                <li><strong>File Upload:</strong> Upload files</li>
-              </ul>
-              <p className="mt-4 text-sm" style={{ color: 'var(--muted)' }}>
-                💡 Field Label and Field Key are mandatory. The Field Key auto-generates from the label by removing punctuation and replacing spaces with underscores.
-              </p>
-            </div>
-          )
-        },
-        {
-          title: 'Base URL Configuration',
-          content: (
-            <div className="space-y-3">
-              <p>The Base URL is configured centrally in Settings and automatically populated when creating new catalog items.</p>
-              <h4 className="font-semibold mt-4">To configure Base URL:</h4>
-              <ol className="list-decimal list-inside space-y-2 ml-4">
-                <li>Go to Settings → General tab</li>
-                <li>Click "Edit" on the AWX Base URL section</li>
-                <li>Enter your AWX/Ansible Tower API endpoint (e.g., https://awx.uat.fiscloudservices/api/v2)</li>
-                <li>Click "Save"</li>
-              </ol>
-              <p className="mt-4">This URL will appear as a read-only field in the Create Catalog form, ensuring consistency across all catalog items.</p>
             </div>
           )
         }
@@ -328,7 +236,7 @@ export default function DocumentationPage() {
                 <li>View all namespaces in Settings → Namespaces tab</li>
                 <li>Create new namespaces for different teams or projects</li>
                 <li>Assign automations to namespaces when creating them</li>
-                <li>Filter by namespace in the Catalog</li>
+                <li>Organize workflows by department or function</li>
               </ul>
             </div>
           )
