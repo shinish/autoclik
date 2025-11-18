@@ -10,6 +10,8 @@ export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [stats, setStats] = useState({
     totalAutomations: 0,
     runs30d: 0,
@@ -24,8 +26,16 @@ export default function Dashboard() {
     // Check if user is admin from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setIsAdmin(user.role === 'admin');
+    setCurrentUser(user);
 
     fetchDashboardData();
+
+    // Update time every minute
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -47,6 +57,24 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getFormattedDateTime = () => {
+    return currentTime.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const dismissNotification = (notificationId) => {
@@ -96,7 +124,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Dashboard Overview</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+          {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName}
+        </h1>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
+          <CalendarClock className="h-4 w-4" />
+          <span>{getFormattedDateTime()}</span>
+        </div>
+      </div>
 
       {/* Welcome Message for First Time Setup */}
       {showWelcome && (
