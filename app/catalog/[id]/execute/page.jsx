@@ -17,6 +17,7 @@ export default function CatalogExecutePage() {
   const [formValues, setFormValues] = useState({});
   const [formSchema, setFormSchema] = useState([]);
   const [consoleOutput, setConsoleOutput] = useState('');
+  const [htmlResponse, setHtmlResponse] = useState('');
   const [pollingInterval, setPollingInterval] = useState(null);
   const [customBody, setCustomBody] = useState('');
   const [showBodyEditor, setShowBodyEditor] = useState(false);
@@ -156,9 +157,20 @@ export default function CatalogExecutePage() {
           const data = await res.json();
           setExecution(data);
 
-          // Update console output
+          // Update console output and extract HTML if present
           if (data.consoleOutput) {
-            setConsoleOutput(data.consoleOutput);
+            // Check if output contains HTML
+            const htmlMatch = data.consoleOutput.match(/(?:<!DOCTYPE[^>]*>|<html[^>]*>)([\s\S]*?)(?:<\/html>)/i);
+            if (htmlMatch) {
+              // Extract HTML and clean console output
+              const fullHtml = htmlMatch[0];
+              const cleanedOutput = data.consoleOutput.replace(fullHtml, '[HTML response extracted - see HTML Response section below]');
+              setConsoleOutput(cleanedOutput);
+              setHtmlResponse(fullHtml);
+            } else {
+              setConsoleOutput(data.consoleOutput);
+              setHtmlResponse('');
+            }
           }
 
           // Stop polling if execution is complete
@@ -534,16 +546,42 @@ export default function CatalogExecutePage() {
               scrollbarWidth: 'thin',
               scrollbarColor: '#00ff00 #2a2a2a'
             }}
-            dangerouslySetInnerHTML={
-              consoleOutput && consoleOutput.includes('<html') || consoleOutput && consoleOutput.includes('<!DOCTYPE')
-                ? { __html: consoleOutput.replace(/<img[^>]*>/gi, '<span style="color: #888;">[Image removed]</span>').replace(/<script[^>]*>.*?<\/script>/gi, '') }
-                : undefined
-            }
           >
-            {!(consoleOutput && (consoleOutput.includes('<html') || consoleOutput.includes('<!DOCTYPE'))) && (consoleOutput || 'No output yet. Execute the catalog to see results.')}
+            {consoleOutput || 'No output yet. Execute the catalog to see results.'}
           </div>
         </div>
       </div>
+
+      {/* HTML Response Section */}
+      {htmlResponse && (
+        <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="h-5 w-5" style={{ color: '#f59e0b' }} />
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+              HTML Response
+            </h2>
+            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}>
+              Non-JSON Response Detected
+            </span>
+          </div>
+
+          <div
+            className="rounded-lg p-4 overflow-y-auto"
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--border)',
+              maxHeight: '600px',
+              overflowY: 'scroll'
+            }}
+            dangerouslySetInnerHTML={{
+              __html: htmlResponse
+                .replace(/<img[^>]*>/gi, '<div style="padding: 10px; background: #f3f4f6; border: 1px dashed #9ca3af; color: #6b7280; margin: 10px 0;">[Image removed for security]</div>')
+                .replace(/<script[^>]*>.*?<\/script>/gi, '')
+                .replace(/<link[^>]*rel=["\']stylesheet["\'][^>]*>/gi, '')
+            }}
+          />
+        </div>
+      )}
 
       {/* Recent Executions */}
       {catalog.executions && catalog.executions.length > 0 && (
