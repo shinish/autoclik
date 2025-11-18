@@ -440,7 +440,23 @@ export default function CatalogPage() {
               </tr>
             ) : (
               paginatedCatalogs.map((catalog) => (
-                <tr key={catalog.id} className="hover:opacity-90 transition-opacity">
+                <tr
+                  key={catalog.id}
+                  className="transition-all duration-200 cursor-pointer"
+                  style={{
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg)';
+                    e.currentTarget.style.transform = 'scale(1.01)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
                   <td className="px-6 py-4 text-sm font-medium" style={{ color: 'var(--text)' }}>
                     {catalog.name}
                   </td>
