@@ -131,8 +131,8 @@ export async function POST(request) {
     // Create notification
     await createNotification({
       type: 'success',
-      title: 'Catalog Created',
-      message: `New catalog "${automation.name}" has been created in the ${automation.namespace} namespace`,
+      title: 'Automation Created',
+      message: `New automation "${automation.name}" has been created in the ${automation.namespace} namespace`,
     });
 
     return NextResponse.json(automation, { status: 201 });

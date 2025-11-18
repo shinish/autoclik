@@ -22,7 +22,8 @@
   --text:      #000000;       /* Tertiary - Black */
   --muted:     var(--gray);   /* Secondary gray for muted text */
   --primary:   var(--eggplant); /* Primary brand color */
-  --secondary: var(--raspberry); /* Secondary brand color */
+  --secondary: linear-gradient(135deg, var(--eggplant) 0%, var(--gray) 100%); /* Eggplant to gray gradient */
+  --secondary-solid: #5a4370; /* Blended eggplant and gray for solid backgrounds */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
   --warning:   #f59e0b;
@@ -63,7 +64,8 @@
   --text:      #ffffff;       /* Tertiary - White */
   --muted:     var(--gray);   /* Lightened gray for muted text */
   --primary:   var(--eggplant); /* Primary brand color */
-  --secondary: var(--raspberry); /* Secondary brand color */
+  --secondary: linear-gradient(135deg, var(--eggplant) 0%, var(--gray) 100%); /* Eggplant to gray gradient */
+  --secondary-solid: #8a6d9d; /* Blended eggplant and gray for dark mode */
   --accent:    var(--core-green); /* Accent - Core Green */
   --success:   var(--core-green);
   --warning:   #fbbf24;
