@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User, FileText, AlertCircle, AlertTriangle, Info, RefreshCw, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Shield, X, Search, Eye, EyeOff, User, FileText, AlertCircle, AlertTriangle, Info, RefreshCw, Filter, Server } from 'lucide-react';
 import Button from '@/components/Button';
 
 export default function SettingsPage() {
@@ -10,8 +10,9 @@ export default function SettingsPage() {
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [credentials, setCredentials] = useState([]);
+  const [environments, setEnvironments] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'namespace', 'user', 'group', 'permission', 'credential'
+  const [modalType, setModalType] = useState(''); // 'namespace', 'user', 'group', 'permission', 'credential', 'environment'
   const [selectedItem, setSelectedItem] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -109,6 +110,7 @@ export default function SettingsPage() {
     fetchUsers();
     fetchGroups();
     fetchCredentials();
+    fetchEnvironments();
   }, []);
 
   // Close manager dropdown when clicking outside
@@ -480,6 +482,18 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchEnvironments = async () => {
+    try {
+      const res = await fetch('/api/settings/environments');
+      if (res.ok) {
+        const data = await res.json();
+        setEnvironments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching environments:', error);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
@@ -809,6 +823,53 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCreateEnvironment = async () => {
+    try {
+      const res = await fetch('/api/settings/environments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          baseUrl: formData.baseUrl,
+          token: formData.token,
+          description: formData.description,
+        }),
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+        setShowModal(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error creating environment:', error);
+    }
+  };
+
+  const handleUpdateEnvironment = async () => {
+    try {
+      const res = await fetch('/api/settings/environments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedItem.id,
+          name: formData.name,
+          baseUrl: formData.baseUrl,
+          token: formData.token,
+          description: formData.description,
+        }),
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+        setShowModal(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error updating environment:', error);
+    }
+  };
+
   const handleDeleteNamespace = async (id) => {
     if (!confirm('Are you sure you want to delete this namespace?')) return;
 
@@ -841,19 +902,44 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteEnvironment = async (id) => {
+    if (!confirm('Are you sure you want to delete this environment?')) return;
+
+    try {
+      const res = await fetch(`/api/settings/environments?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchEnvironments();
+      }
+    } catch (error) {
+      console.error('Error deleting environment:', error);
+    }
+  };
+
   const openModal = (type, item = null) => {
     setModalType(type);
     setSelectedItem(item);
     setShowModal(true);
     if (item) {
-      setFormData({
-        name: item.name || '',
-        displayName: item.displayName || '',
-        description: item.description || '',
-        color: item.color || '#546aff',
-        email: item.email || '',
-        role: item.role || 'user',
-      });
+      if (type === 'environment') {
+        setFormData({
+          name: item.name || '',
+          baseUrl: item.baseUrl || '',
+          token: item.token || '',
+          description: item.description || '',
+        });
+      } else {
+        setFormData({
+          name: item.name || '',
+          displayName: item.displayName || '',
+          description: item.description || '',
+          color: item.color || '#546aff',
+          email: item.email || '',
+          role: item.role || 'user',
+        });
+      }
     }
   };
 
@@ -880,6 +966,8 @@ export default function SettingsPage() {
       password: '',
       sshPrivateKey: '',
       vaultPassword: '',
+      baseUrl: '',
+      token: '',
     });
   };
 
@@ -898,6 +986,12 @@ export default function SettingsPage() {
       handleUpdateGroup();
     } else if (modalType === 'credential') {
       handleCreateCredential();
+    } else if (modalType === 'environment') {
+      if (selectedItem) {
+        handleUpdateEnvironment();
+      } else {
+        handleCreateEnvironment();
+      }
     }
   };
 
@@ -962,6 +1056,17 @@ export default function SettingsPage() {
                 }}
               >
                 Credentials
+              </button>
+              <button
+                onClick={() => setActiveTab('environments')}
+                className={`border-b-2 pb-3 text-sm font-medium transition-colors hover:opacity-80 flex items-center gap-2`}
+                style={{
+                  borderColor: activeTab === 'environments' ? 'var(--accent)' : 'transparent',
+                  color: activeTab === 'environments' ? 'var(--accent)' : 'var(--muted)'
+                }}
+              >
+                <Server className="h-4 w-4" />
+                Environments
               </button>
               <button
                 onClick={() => setActiveTab('logs')}
@@ -2082,6 +2187,89 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Environments Tab */}
+      {activeTab === 'environments' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Manage AWX server environments for catalog executions
+            </p>
+            <Button variant="primary" icon={Plus} onClick={() => openModal('environment')}>
+              Add Environment
+            </Button>
+          </div>
+
+          <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+            <table className="w-full">
+              <thead style={{ backgroundColor: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Base URL
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Token
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                {environments.map((environment) => (
+                  <tr key={environment.id} className="hover:opacity-90 transition-opacity">
+                    <td className="px-6 py-4 text-sm font-medium" style={{ color: 'var(--text)' }}>
+                      {environment.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.baseUrl}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.token ? '••••••••' : 'Not set'}
+                    </td>
+                    <td className="px-6 py-4 text-sm" style={{ color: 'var(--muted)' }}>
+                      {environment.description || '-'}
+                    </td>
+                    <td className="px-6 py-4 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedItem(environment);
+                          openModal('environment');
+                        }}
+                        className="p-2 rounded-lg transition-all hover:scale-110"
+                        style={{
+                          backgroundColor: 'var(--bg)',
+                          color: 'var(--accent)'
+                        }}
+                        title="Edit Environment"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEnvironment(environment.id)}
+                        className="p-2 rounded-lg transition-all hover:scale-110"
+                        style={{
+                          backgroundColor: 'var(--bg)',
+                          color: '#ef4444'
+                        }}
+                        title="Delete Environment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Logs Tab */}
       {activeTab === 'logs' && (
         <LogsTabContent
@@ -2111,6 +2299,7 @@ export default function SettingsPage() {
                 {modalType === 'group' && 'Create Group'}
                 {modalType === 'edit-group' && 'Edit Group'}
                 {modalType === 'credential' && 'Add Credential'}
+                {modalType === 'environment' && (selectedItem ? 'Edit Environment' : 'Add Environment')}
                 {modalType === 'permission' && `Manage Permissions: ${selectedItem?.displayName}`}
               </h2>
               <button
@@ -2962,6 +3151,87 @@ export default function SettingsPage() {
                 </>
               )}
 
+              {modalType === 'environment' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Name<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Production AWX"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      Base URL<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.baseUrl}
+                      onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+                      placeholder="https://awx.example.com/api/v2"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      Include /api/v2 in the URL
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                      API Token
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.token}
+                      onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                      placeholder="Enter AWX API token (optional)"
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      Optional: Bearer token for API authentication
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Description of environment"
+                      rows={2}
+                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 resize-none"
+                      style={{
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        focusRing: 'var(--accent)'
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+
               {modalType === 'reset-password' && (
                 <>
                   <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -3062,6 +3332,7 @@ export default function SettingsPage() {
                   {modalType === 'group' && 'Create Group'}
                   {modalType === 'edit-group' && 'Update Group'}
                   {modalType === 'credential' && 'Add Credential'}
+                  {modalType === 'environment' && (selectedItem ? 'Update Environment' : 'Add Environment')}
                 </Button>
               </div>
             )}
