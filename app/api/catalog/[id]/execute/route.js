@@ -98,34 +98,78 @@ export async function POST(request, { params }) {
     try {
       // Build initial console output with API request details
       const maskedToken = awxToken.substring(0, 8) + '...' + awxToken.substring(awxToken.length - 4);
+      const timestamp = new Date();
+      const formattedTime = timestamp.toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'long'
+      });
+
+      // Parse parameters for display
+      let parametersDisplay = 'None';
+      if (parameters && Object.keys(parameters).length > 0) {
+        parametersDisplay = Object.entries(parameters)
+          .map(([key, value]) => `    • ${key}: ${value}`)
+          .join('\n');
+      }
+
+      // Calculate request body size
+      const bodySize = new Blob([JSON.stringify(requestBody)]).size;
+      const bodySizeFormatted = bodySize < 1024
+        ? `${bodySize} bytes`
+        : `${(bodySize / 1024).toFixed(2)} KB`;
+
       const initialConsoleOutput = `
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                          CATALOG EXECUTION STARTED                            ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
-📋 Execution Details:
+📋 Execution Information:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Catalog        : ${catalog.name}
-  Environment    : ${catalog.environment.name}
-  Template ID    : ${catalog.templateId}
-  Executed By    : ${executedBy || 'system'}
-  Timestamp      : ${new Date().toISOString()}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🌐 API Request Information:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Method         : POST
-  URL            : ${awxUrl}
-  Authorization  : Bearer ${maskedToken}
-  Content-Type   : application/json
+  Catalog Name      : ${catalog.name}
+  Catalog ID        : ${catalog.id}
+  Description       : ${catalog.description || 'N/A'}
+  Namespace         : ${catalog.namespaceId}
+  Environment       : ${catalog.environment.name}
+  Environment URL   : ${catalog.environment.baseUrl}
+  Template ID       : ${catalog.templateId}
+  Executed By       : ${executedBy || 'system'}
+  Execution ID      : ${execution.id}
+  Started At        : ${formattedTime}
+  Timestamp (ISO)   : ${timestamp.toISOString()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📦 Request Body:
-${JSON.stringify(requestBody, null, 2)}
-
+📝 Form Parameters:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${parametersDisplay}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏳ Sending request to AWX...
+🌐 HTTP Request Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Method            : POST
+  URL               : ${awxUrl}
+  Protocol          : HTTPS
+  Host              : ${new URL(awxUrl).hostname}
+  Path              : ${new URL(awxUrl).pathname}
+  Port              : ${new URL(awxUrl).port || '443'}
+
+  Headers:
+    Content-Type    : application/json
+    Authorization   : Bearer ${maskedToken}
+    Accept          : application/json
+    User-Agent      : Catalog-Automation-Platform/1.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 Request Payload:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Body Size         : ${bodySizeFormatted}
+  Format            : JSON
+
+  Content:
+${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).join('\n')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏳ Initiating connection to AWX server...
+⏳ Sending POST request...
 `;
 
       // Update execution status to running with initial console output
@@ -165,24 +209,67 @@ ${JSON.stringify(requestBody, null, 2)}
       try {
         result = JSON.parse(responseText);
 
+        // Calculate response time
+        const responseTime = new Date();
+        const elapsedMs = responseTime - timestamp;
+        const elapsedFormatted = elapsedMs < 1000
+          ? `${elapsedMs}ms`
+          : `${(elapsedMs / 1000).toFixed(2)}s`;
+
+        // Calculate response size
+        const responseSize = new Blob([responseText]).size;
+        const responseSizeFormatted = responseSize < 1024
+          ? `${responseSize} bytes`
+          : `${(responseSize / 1024).toFixed(2)} KB`;
+
         // Build response console output
         responseConsoleOutput = `
 ✓ Request sent successfully!
+✓ Response received!
 
-📥 AWX Response:
+📥 HTTP Response Details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Status Code    : ${response.status} ${response.statusText}
-  Job ID         : ${result.id || 'N/A'}
-  Job Type       : ${result.type || 'N/A'}
-  Job URL        : ${result.url || 'N/A'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📄 Full Response Body:
-${JSON.stringify(result, null, 2)}
-
+  Status Code       : ${response.status} ${response.statusText}
+  Response Time     : ${elapsedFormatted}
+  Response Size     : ${responseSizeFormatted}
+  Content-Type      : ${response.headers.get('content-type') || 'application/json'}
+  Server            : ${response.headers.get('server') || 'AWX'}
+  Received At       : ${responseTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔄 Job execution initiated. Polling for updates...
+🎯 AWX Job Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Job ID            : ${result.id || 'N/A'}
+  Job Name          : ${result.name || 'N/A'}
+  Job Type          : ${result.type || 'N/A'}
+  Job Status        : ${result.status || 'pending'}
+  Job URL           : ${result.url || 'N/A'}
+  Playbook          : ${result.playbook || 'N/A'}
+  Project           : ${result.project || 'N/A'}
+  Inventory         : ${result.inventory || 'N/A'}
+  Created By        : ${result.created_by?.username || 'N/A'}
+  Launch Type       : ${result.launch_type || 'manual'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Job Execution Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ${result.id ? `Job started successfully in AWX` : 'Job queued'}
+  ${result.url ? `Monitor at: ${catalog.environment.baseUrl}${result.url}` : ''}
+  ${result.status === 'pending' ? '⏳ Job is in queue, waiting to start...' : ''}
+  ${result.status === 'waiting' ? '⏸️  Job is waiting for dependencies...' : ''}
+  ${result.status === 'running' ? '▶️  Job is currently running...' : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 Complete Response Payload:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${JSON.stringify(result, null, 2).split('\n').map(line => '    ' + line).join('\n')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 Job execution initiated successfully!
+📊 The job is now running in AWX. The system will poll for updates every 3 seconds.
+💡 You can also view the job directly in AWX at: ${catalog.environment.baseUrl}/#/jobs/${result.id || ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
       } catch (e) {
         // Check if it's an HTML access denied page
@@ -227,22 +314,87 @@ ${JSON.stringify(result, null, 2)}
     } catch (error) {
       console.error('Error executing catalog:', error);
 
+      // Determine error category
+      let errorCategory = 'Unknown Error';
+      let specificTips = [];
+
+      if (error.message.includes('Access Denied') || error.message.includes('Invalid credentials')) {
+        errorCategory = 'Authentication Error';
+        specificTips = [
+          'Verify the AWX_TOKEN environment variable is set correctly',
+          'Ensure the token has "Write" scope in AWX',
+          'Check that the token has not expired',
+          'Confirm the user has permissions to launch this job template'
+        ];
+      } else if (error.message.includes('not found') || error.message.includes('404')) {
+        errorCategory = 'Resource Not Found';
+        specificTips = [
+          'Verify the Template ID exists in AWX',
+          'Check that the job template has not been deleted',
+          'Ensure you are using the correct AWX environment',
+          'Confirm the template ID matches the URL path'
+        ];
+      } else if (error.message.includes('connection') || error.message.includes('ECONNREFUSED')) {
+        errorCategory = 'Connection Error';
+        specificTips = [
+          'Verify AWX server is running and accessible',
+          'Check the AWX base URL in environment settings',
+          'Ensure network connectivity to AWX server',
+          'Verify firewall rules allow connection'
+        ];
+      } else if (error.message.includes('timeout')) {
+        errorCategory = 'Timeout Error';
+        specificTips = [
+          'AWX server may be under heavy load',
+          'Check AWX server performance and resources',
+          'Increase timeout settings if needed',
+          'Verify AWX is not stuck or frozen'
+        ];
+      } else if (error.message.includes('JSON')) {
+        errorCategory = 'Data Format Error';
+        specificTips = [
+          'Review the request body for JSON syntax errors',
+          'Ensure all template variables are properly replaced',
+          'Check for invalid characters in form inputs',
+          'Validate the custom body if manually edited'
+        ];
+      }
+
       // Build error console output
+      const errorTime = new Date();
       const errorConsoleOutput = initialConsoleOutput + `
-❌ Execution Failed!
+❌ EXECUTION FAILED!
 
-🚨 Error Details:
+🚨 Error Information:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Error Type     : ${error.name || 'Error'}
-  Error Message  : ${error.message}
-  Timestamp      : ${new Date().toISOString()}
+  Error Category    : ${errorCategory}
+  Error Type        : ${error.name || 'Error'}
+  Error Message     : ${error.message}
+  Error Code        : ${error.code || 'N/A'}
+  Failed At         : ${errorTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
+  Timestamp (ISO)   : ${errorTime.toISOString()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 Troubleshooting Tips:
-  • Verify AWX token is valid and has Write scope
-  • Check that the template ID exists in AWX
-  • Ensure AWX server is running and accessible
-  • Review the request body for any syntax errors
+💡 Troubleshooting Steps:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${specificTips.length > 0 ? specificTips.map((tip, i) => `  ${i + 1}. ${tip}`).join('\n') : '  • Check AWX server logs for more details\n  • Verify all configuration settings\n  • Contact your administrator if issue persists'}
+
+General Tips:
+  • Review the request details above for any obvious issues
+  • Check AWX server status and logs
+  • Verify network connectivity
+  • Ensure all required fields are filled correctly
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Stack Trace:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${error.stack || 'No stack trace available'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 Helpful Links:
+  • AWX Documentation: https://docs.ansible.com/automation-controller/
+  • API Reference: ${catalog.environment.baseUrl}/api/
+  • Job Templates: ${catalog.environment.baseUrl}/#/templates
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
