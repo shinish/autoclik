@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus } from 'lucide-react';
+import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus, X } from 'lucide-react';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
 
@@ -607,9 +607,33 @@ export default function CatalogPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg p-6" style={{ backgroundColor: 'var(--surface)' }}>
-            <h2 className="text-xl font-semibold mb-6" style={{ color: 'var(--text)' }}>
-              {editingCatalog ? 'Edit Catalog Item' : 'Add Catalog Item'}
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                {editingCatalog ? 'Edit Catalog Item' : 'Add Catalog Item'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingCatalog(null);
+                  setFormData({
+                    name: '',
+                    description: '',
+                    tags: [],
+                    namespaceId: '',
+                    environmentId: '',
+                    templateId: '',
+                    customBody: '',
+                    formSchema: ''
+                  });
+                }}
+                className="p-2 rounded-lg hover:bg-opacity-10 transition-colors"
+                style={{ color: 'var(--muted)', backgroundColor: 'transparent' }}
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -822,14 +846,31 @@ export default function CatalogPage() {
                 <Button type="submit" variant="primary" className="flex-1">
                   {editingCatalog ? 'Update Catalog' : 'Create Catalog'}
                 </Button>
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1"
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingCatalog(null);
+                    setFormData({
+                      name: '',
+                      description: '',
+                      tags: [],
+                      namespaceId: '',
+                      environmentId: '',
+                      templateId: '',
+                      customBody: '',
+                      formSchema: ''
+                    });
+                  }}
+                  className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-red-50"
+                  style={{
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    backgroundColor: 'transparent'
+                  }}
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </form>
           </div>
@@ -941,9 +982,8 @@ export default function CatalogPage() {
                 <Button type="submit" variant="primary" className="flex-1">
                   Create Namespace
                 </Button>
-                <Button
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => {
                     setShowNamespaceModal(false);
                     setNamespaceFormData({
@@ -953,10 +993,15 @@ export default function CatalogPage() {
                       color: '#546aff',
                     });
                   }}
-                  className="flex-1"
+                  className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-red-50"
+                  style={{
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    backgroundColor: 'transparent'
+                  }}
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </form>
           </div>
