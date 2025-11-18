@@ -75,8 +75,8 @@ export async function POST(request, { params }) {
     // Make request to AWX
     const awxUrl = `${catalog.environment.baseUrl}/job_templates/${catalog.templateId}/launch/`;
 
-    // Get AWX token from environment variable (mandatory)
-    const awxToken = process.env.AWX_TOKEN;
+    // Get AWX token from the selected environment
+    const awxToken = catalog.environment.token;
 
     if (!awxToken) {
       // Update execution with error
@@ -84,13 +84,13 @@ export async function POST(request, { params }) {
         where: { id: execution.id },
         data: {
           status: 'failed',
-          errorMessage: 'AWX_TOKEN environment variable is not configured',
+          errorMessage: 'AWX token is not configured for this environment',
           completedAt: new Date(),
         },
       });
 
       return NextResponse.json(
-        { error: 'AWX_TOKEN environment variable is required but not configured' },
+        { error: 'AWX token is not configured for the selected environment' },
         { status: 500 }
       );
     }
