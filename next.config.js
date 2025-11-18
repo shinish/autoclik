@@ -9,7 +9,7 @@ const nextConfig = {
   },
 
   // Webpack configuration for Windows path handling
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Handle Windows path separators
     if (process.platform === 'win32') {
       config.resolve.fallback = {
@@ -18,7 +18,20 @@ const nextConfig = {
         net: false,
         tls: false,
       };
+
+      // Fix source map issues on Windows
+      if (dev) {
+        config.devtool = 'eval-source-map';
+      }
     }
+
+    // Ignore source map warnings
+    config.ignoreWarnings = [
+      { module: /node_modules/ },
+      /Failed to parse source map/,
+      /source map url cannot be parsed/,
+    ];
+
     return config;
   },
 
