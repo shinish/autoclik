@@ -286,7 +286,22 @@ export default function RunAutomationPage() {
         body: JSON.stringify(requestPayload),
       });
 
-      const data = await res.json();
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get('content-type');
+      let data;
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        // Response is not JSON (likely HTML error page)
+        const text = await res.text();
+        data = {
+          error: 'Server returned non-JSON response',
+          details: `Expected JSON but received ${contentType || 'unknown content type'}`,
+          statusCode: res.status,
+          responsePreview: text.substring(0, 200)
+        };
+      }
 
       if (res.ok) {
         setResult({
