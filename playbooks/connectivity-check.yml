@@ -5,7 +5,6 @@
   vars:
     check_hosts:
       - google.com
-      - 8.8.8.8
       - github.com
       - invalid.xyz.test
   tasks:
@@ -13,19 +12,22 @@
       set_fact:
         connectivity_results: {}
 
-    - name: Check connectivity to each host
-      shell: |
-        ping -c 1 -W 2 {{ item }} > /dev/null 2>&1
-        echo $?
-      register: ping_results
+    - name: Check connectivity to each host (HTTP/HTTPS)
+      uri:
+        url: "https://{{ item }}"
+        method: GET
+        timeout: 5
+        validate_certs: no
+        status_code: -1
+      register: http_results
       loop: "{{ check_hosts }}"
       ignore_errors: yes
       changed_when: false
 
     - name: Build results dictionary
       set_fact:
-        connectivity_results: "{{ connectivity_results | combine({item.item: ('Success' if item.stdout | int == 0 else 'Failed')}) }}"
-      loop: "{{ ping_results.results }}"
+        connectivity_results: "{{ connectivity_results | combine({item.item: ('Success' if item.status is defined and item.status > 0 else 'Failed')}) }}"
+      loop: "{{ http_results.results }}"
       loop_control:
         label: "{{ item.item }}"
 
