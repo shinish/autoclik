@@ -333,7 +333,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.parameters || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.parameters || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.parameters;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}
@@ -346,7 +352,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.result || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.result || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.result;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}
@@ -359,7 +371,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.artifacts;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}
