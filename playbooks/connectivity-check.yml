@@ -3,10 +3,8 @@
   hosts: localhost
   gather_facts: no
   vars:
-    check_hosts:
-      - google.com
-      - github.com
-      - invalid.xyz.test
+    check_hosts: "{{ check_hosts | default(['google.com', 'github.com', '8.8.8.8']) }}"
+    timeout: "{{ timeout | default(5) }}"
   tasks:
     - name: Initialize results dictionary
       set_fact:
@@ -16,7 +14,7 @@
       uri:
         url: "https://{{ item }}"
         method: GET
-        timeout: 5
+        timeout: "{{ timeout }}"
         validate_certs: no
         status_code: -1
       register: http_results
