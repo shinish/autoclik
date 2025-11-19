@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus, X, Trash2 } from 'lucide-react';
+import { Plus, Edit, Play, Search, Tag, Server, Clock, Filter, ChevronLeft, ChevronRight, FolderPlus, X, Trash2, History } from 'lucide-react';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
 
@@ -312,6 +312,9 @@ export default function CatalogPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <Button variant="outline" icon={History} onClick={() => router.push('/catalog/history')}>
+            View History
+          </Button>
           <Button variant="outline" icon={Filter} onClick={() => setShowFilters(!showFilters)}>
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </Button>

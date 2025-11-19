@@ -36,7 +36,7 @@ export async function GET(request, { params }) {
           return NextResponse.json(execution);
         }
 
-        const awxUrl = `${execution.catalog.environment.baseUrl}/jobs/${execution.awxJobId}/`;
+        const awxUrl = `${execution.catalog.environment.baseUrl}/api/v2/jobs/${execution.awxJobId}/`;
 
         const headers = {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export async function GET(request, { params }) {
           // Get console output if available
           let consoleOutput = execution.consoleOutput;
           try {
-            const stdoutUrl = `${execution.catalog.environment.baseUrl}/jobs/${execution.awxJobId}/stdout/?format=txt`;
+            const stdoutUrl = `${execution.catalog.environment.baseUrl}/api/v2/jobs/${execution.awxJobId}/stdout/?format=txt`;
             const stdoutHeaders = {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${awxToken}`,
@@ -147,7 +147,7 @@ export async function DELETE(request, { params }) {
         const awxToken = process.env.AWX_TOKEN;
 
         if (awxToken) {
-          const cancelUrl = `${execution.catalog.environment.baseUrl}/jobs/${execution.awxJobId}/cancel/`;
+          const cancelUrl = `${execution.catalog.environment.baseUrl}/api/v2/jobs/${execution.awxJobId}/cancel/`;
 
           const headers = {
             'Content-Type': 'application/json',

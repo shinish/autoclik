@@ -43,37 +43,174 @@ export async function POST(request, { params }) {
         // Parse the custom body template
         let bodyTemplate = bodyToUse;
 
+        // Pre-process parameters for special conversions
+        const processedParameters = { ...parameters };
+
+        // Convert check_hosts textarea to array (keep as array, not JSON string)
+        if (processedParameters.check_hosts && typeof processedParameters.check_hosts === 'string') {
+          processedParameters.check_hosts_array = processedParameters.check_hosts
+            .split('\n')
+            .map(host => host.trim())
+            .filter(host => host.length > 0);
+        }
+
+        // Convert instance_group_id to integer
+        if (processedParameters.instance_group_id) {
+          const igId = parseInt(processedParameters.instance_group_id);
+          if (!isNaN(igId)) {
+            processedParameters.instance_group_id = igId;
+          }
+        }
+
+        // Convert timeout to integer if it's a string
+        if (processedParameters.timeout && typeof processedParameters.timeout === 'string') {
+          const timeoutVal = parseInt(processedParameters.timeout);
+          if (!isNaN(timeoutVal)) {
+            processedParameters.timeout = timeoutVal;
+          }
+        }
+
         // Replace variables in the template with actual parameter values
-        if (parameters) {
-          Object.keys(parameters).forEach(key => {
+        if (processedParameters) {
+          Object.keys(processedParameters).forEach(key => {
+            const value = processedParameters[key];
             const regex = new RegExp(`{{\\s*form\\.${key}\\s*}}`, 'g');
-            bodyTemplate = bodyTemplate.replace(regex, parameters[key]);
+
+            // For non-string values (numbers, booleans, arrays), use direct JSON substitution
+            if (typeof value !== 'string') {
+              bodyTemplate = bodyTemplate.replace(regex, JSON.stringify(value));
+            } else {
+              // For strings, escape quotes and use direct substitution
+              bodyTemplate = bodyTemplate.replace(regex, value);
+            }
           });
         }
 
         requestBody = JSON.parse(bodyTemplate);
       } catch (error) {
-        console.error('Error parsing custom body:', error);
+        console.error('Error parsing custom body with template:', error);
 
-        // Update execution with error
-        await prisma.catalogExecution.update({
-          where: { id: execution.id },
-          data: {
-            status: 'failed',
-            errorMessage: 'Failed to parse request body template',
-            completedAt: new Date(),
-          },
-        });
+        // If template parsing fails, try building request body dynamically from parameters
+        try {
+          requestBody = {};
 
-        return NextResponse.json(
-          { error: 'Failed to parse request body template' },
-          { status: 400 }
-        );
+          // Extract instance_groups if present
+          if (parameters.instance_group_id) {
+            const igId = parseInt(parameters.instance_group_id);
+            if (!isNaN(igId)) {
+              requestBody.instance_groups = [igId];
+            }
+          }
+
+          // Build extra_vars from all other parameters (excluding instance_group_id)
+          requestBody.extra_vars = {};
+
+          // Get form schema to check field types
+          let formSchema = [];
+          try {
+            formSchema = catalog.formSchema ? JSON.parse(catalog.formSchema) : [];
+          } catch (e) {
+            formSchema = [];
+          }
+
+          Object.keys(parameters).forEach(key => {
+            // Skip instance_group_id as it's already handled
+            if (key === 'instance_group_id') return;
+
+            let value = parameters[key];
+
+            // Find field in schema to check if it's a textarea
+            const field = formSchema.find(f => f.key === key);
+            const isTextarea = field && field.type === 'textarea';
+
+            // Handle textarea fields - always convert to array (split by newlines)
+            if (isTextarea && typeof value === 'string') {
+              value = value.split('\n').map(v => v.trim()).filter(v => v.length > 0);
+            }
+
+            // Try to parse numeric values (only if not a textarea)
+            if (!isTextarea && typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+              const numVal = parseFloat(value);
+              if (!isNaN(numVal)) {
+                value = numVal;
+              }
+            }
+
+            requestBody.extra_vars[key] = value;
+          });
+
+          console.log('Built request body dynamically:', requestBody);
+        } catch (dynamicError) {
+          console.error('Error building dynamic request body:', dynamicError);
+
+          // Update execution with error
+          await prisma.catalogExecution.update({
+            where: { id: execution.id },
+            data: {
+              status: 'failed',
+              errorMessage: 'Failed to build request body from parameters',
+              completedAt: new Date(),
+            },
+          });
+
+          return NextResponse.json(
+            { error: 'Failed to build request body from parameters' },
+            { status: 400 }
+          );
+        }
       }
+    } else {
+      // No custom body template - build request body dynamically from parameters
+      requestBody = {};
+
+      // Extract instance_groups if present
+      if (parameters.instance_group_id) {
+        const igId = parseInt(parameters.instance_group_id);
+        if (!isNaN(igId)) {
+          requestBody.instance_groups = [igId];
+        }
+      }
+
+      // Build extra_vars from all other parameters (excluding instance_group_id)
+      requestBody.extra_vars = {};
+
+      // Get form schema to check field types
+      let formSchema = [];
+      try {
+        formSchema = catalog.formSchema ? JSON.parse(catalog.formSchema) : [];
+      } catch (e) {
+        formSchema = [];
+      }
+
+      Object.keys(parameters).forEach(key => {
+        // Skip instance_group_id as it's already handled
+        if (key === 'instance_group_id') return;
+
+        let value = parameters[key];
+
+        // Find field in schema to check if it's a textarea
+        const field = formSchema.find(f => f.key === key);
+        const isTextarea = field && field.type === 'textarea';
+
+        // Handle textarea fields - always convert to array (split by newlines)
+        if (isTextarea && typeof value === 'string') {
+          value = value.split('\n').map(v => v.trim()).filter(v => v.length > 0);
+        }
+
+        // Try to parse numeric values (only if not a textarea)
+        if (!isTextarea && typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+          const numVal = parseFloat(value);
+          if (!isNaN(numVal)) {
+            value = numVal;
+          }
+        }
+
+        requestBody.extra_vars[key] = value;
+      });
     }
 
     // Make request to AWX
-    const awxUrl = `${catalog.environment.baseUrl}/job_templates/${catalog.templateId}/launch/`;
+    const awxUrl = `${catalog.environment.baseUrl}/api/v2/job_templates/${catalog.templateId}/launch/`;
 
     // Get AWX token from the selected environment
     const awxToken = catalog.environment.token;
@@ -195,11 +332,22 @@ ${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).jo
         body: requestBody,
       });
 
-      const response = await fetch(awxUrl, {
+      // For Node.js fetch, we need to handle self-signed certs and HTTP
+      const fetchOptions = {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
-      });
+      };
+
+      // If using HTTPS with localhost/127.0.0.1, disable SSL verification
+      if (awxUrl.startsWith('https://') && (awxUrl.includes('localhost') || awxUrl.includes('127.0.0.1'))) {
+        const https = require('https');
+        fetchOptions.agent = new https.Agent({
+          rejectUnauthorized: false
+        });
+      }
+
+      const response = await fetch(awxUrl, fetchOptions);
 
       const responseText = await response.text();
       console.log('AWX Response Status:', response.status);
