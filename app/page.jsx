@@ -106,7 +106,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-thin" style={{ color: 'var(--text)' }}>
+        <h1 className="text-4xl font-thin" style={{ color: 'var(--muted)' }}>
           {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName}
         </h1>
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>

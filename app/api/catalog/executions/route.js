@@ -18,12 +18,7 @@ export async function GET(request) {
         catalog: {
           select: {
             name: true,
-            namespace: {
-              select: {
-                name: true,
-                displayName: true,
-              },
-            },
+            namespaceId: true,
           },
         },
       },
@@ -33,23 +28,46 @@ export async function GET(request) {
       take: 100, // Limit to last 100 executions
     });
 
+    // Fetch namespaces for catalog executions
+    const namespaceIds = [...new Set(executions.map(exec => exec.catalog.namespaceId))];
+    const namespaces = await prisma.namespace.findMany({
+      where: {
+        id: {
+          in: namespaceIds,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+      },
+    });
+
+    const namespaceMap = {};
+    namespaces.forEach(ns => {
+      namespaceMap[ns.id] = ns;
+    });
+
     // Transform data for frontend
-    const transformedExecutions = executions.map(exec => ({
-      id: exec.id,
-      catalogId: exec.catalogId,
-      catalogName: exec.catalog.name,
-      namespaceName: exec.catalog.namespace?.displayName || exec.catalog.namespace?.name || 'Unknown',
-      status: exec.status,
-      awxJobId: exec.awxJobId,
-      executedBy: exec.executedBy,
-      startedAt: exec.startedAt,
-      completedAt: exec.completedAt,
-      duration: exec.completedAt
-        ? Math.round((new Date(exec.completedAt) - new Date(exec.startedAt)) / 1000)
-        : null,
-      hasArtifacts: !!exec.artifacts,
-      parameters: exec.parameters ? JSON.parse(exec.parameters) : null,
-    }));
+    const transformedExecutions = executions.map(exec => {
+      const namespace = namespaceMap[exec.catalog.namespaceId];
+      return {
+        id: exec.id,
+        catalogId: exec.catalogId,
+        catalogName: exec.catalog.name,
+        namespaceName: namespace?.displayName || namespace?.name || 'Unknown',
+        status: exec.status,
+        awxJobId: exec.awxJobId,
+        executedBy: exec.executedBy,
+        startedAt: exec.startedAt,
+        completedAt: exec.completedAt,
+        duration: exec.completedAt
+          ? Math.round((new Date(exec.completedAt) - new Date(exec.startedAt)) / 1000)
+          : null,
+        hasArtifacts: !!exec.artifacts,
+        parameters: exec.parameters ? JSON.parse(exec.parameters) : null,
+      };
+    });
 
     return NextResponse.json(transformedExecutions);
   } catch (error) {
