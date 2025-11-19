@@ -50,39 +50,57 @@ export async function GET(request) {
           select: {
             id: true,
             name: true,
-            namespace: {
-              select: {
-                name: true,
-                displayName: true,
-              },
-            },
+            namespaceId: true,
           },
         },
       },
       take: Math.min(limit, 100),
     });
 
-    // Transform catalog executions to match runs format
-    const transformedCatalogExecutions = catalogExecutions.map(exec => ({
-      id: exec.id,
-      automationId: exec.catalogId,
-      status: exec.status,
-      uniqueId: null,
-      parameters: exec.parameters,
-      result: exec.consoleOutput,
-      artifacts: exec.artifacts,
-      errorMessage: exec.errorMessage,
-      executedBy: exec.executedBy,
-      startedAt: exec.startedAt,
-      completedAt: exec.completedAt,
-      awxJobId: exec.awxJobId,
-      type: 'catalog',
-      automation: {
-        id: exec.catalog.id,
-        name: exec.catalog.name,
-        namespace: exec.catalog.namespace?.displayName || exec.catalog.namespace?.name || 'Catalog',
+    // Fetch namespaces for catalog executions
+    const namespaceIds = [...new Set(catalogExecutions.map(exec => exec.catalog.namespaceId))];
+    const namespaces = await prisma.namespace.findMany({
+      where: {
+        id: {
+          in: namespaceIds,
+        },
       },
-    }));
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+      },
+    });
+
+    const namespaceMap = {};
+    namespaces.forEach(ns => {
+      namespaceMap[ns.id] = ns;
+    });
+
+    // Transform catalog executions to match runs format
+    const transformedCatalogExecutions = catalogExecutions.map(exec => {
+      const namespace = namespaceMap[exec.catalog.namespaceId];
+      return {
+        id: exec.id,
+        automationId: exec.catalogId,
+        status: exec.status,
+        uniqueId: null,
+        parameters: exec.parameters,
+        result: exec.consoleOutput,
+        artifacts: exec.artifacts,
+        errorMessage: exec.errorMessage,
+        executedBy: exec.executedBy,
+        startedAt: exec.startedAt,
+        completedAt: exec.completedAt,
+        awxJobId: exec.awxJobId,
+        type: 'catalog',
+        automation: {
+          id: exec.catalog.id,
+          name: exec.catalog.name,
+          namespace: namespace?.displayName || namespace?.name || 'Catalog',
+        },
+      };
+    });
 
     // Transform automation runs to include type
     const transformedRuns = runs.map(run => ({

@@ -306,7 +306,7 @@ export default function CatalogPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--text)' }}>Catalog</h1>
+          <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Catalog</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
             Browse and execute automation templates
           </p>
