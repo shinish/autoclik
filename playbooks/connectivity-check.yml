@@ -1,0 +1,40 @@
+---
+- name: Server Connectivity Check
+  hosts: localhost
+  gather_facts: no
+  vars:
+    check_hosts:
+      - google.com
+      - 8.8.8.8
+      - github.com
+      - invalid.xyz.test
+  tasks:
+    - name: Initialize results dictionary
+      set_fact:
+        connectivity_results: {}
+
+    - name: Check connectivity to each host
+      shell: |
+        ping -c 1 -W 2 {{ item }} > /dev/null 2>&1
+        echo $?
+      register: ping_results
+      loop: "{{ check_hosts }}"
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Build results dictionary
+      set_fact:
+        connectivity_results: "{{ connectivity_results | combine({item.item: ('Success' if item.stdout | int == 0 else 'Failed')}) }}"
+      loop: "{{ ping_results.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Display connectivity results
+      debug:
+        msg: "{{ connectivity_results }}"
+
+    - name: Save results as artifact
+      set_stats:
+        data:
+          connectivity_check: "{{ connectivity_results }}"
+        per_host: no
