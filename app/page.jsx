@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Edit, X, Plus } from 'lucide-react';
+import { CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Edit, X, Plus, BookOpen } from 'lucide-react';
 import { StatCard } from '@/components/Card';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
@@ -132,6 +132,9 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-3">
           <Button variant="primary" icon={CalendarClock} onClick={() => router.push('/schedules')}>
             Create Schedule
+          </Button>
+          <Button variant="primary" icon={BookOpen} onClick={() => router.push('/catalog')}>
+            Create Catalog
           </Button>
         </div>
       </div>
