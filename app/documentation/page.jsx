@@ -127,6 +127,95 @@ export default function DocumentationPage() {
       ]
     },
     {
+      id: 'catalog',
+      title: 'Catalog',
+      icon: Play,
+      items: [
+        {
+          title: 'What is Catalog?',
+          content: (
+            <div className="space-y-3">
+              <p>The Catalog is a curated collection of pre-built automation templates that you can execute on-demand. These templates are designed for common operational tasks and can be executed without scheduling.</p>
+              <h4 className="font-semibold mt-4">Key Features:</h4>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li>Browse automation templates organized by namespace</li>
+                <li>Execute automations with custom parameters</li>
+                <li>Track execution history and view logs</li>
+                <li>Monitor real-time execution status</li>
+                <li>Download execution artifacts</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          title: 'Executing Catalog Items',
+          content: (
+            <div className="space-y-3">
+              <p>Execute catalog items with customizable parameters to perform tasks like connectivity checks, deployments, or system validations.</p>
+              <h4 className="font-semibold mt-4">To execute a catalog item:</h4>
+              <ol className="list-decimal list-inside space-y-2 ml-4">
+                <li>Navigate to the Catalog page</li>
+                <li>Browse or search for the automation you need</li>
+                <li>Click the "Execute" button on the catalog card</li>
+                <li>Fill in required parameters (hosts, credentials, configuration)</li>
+                <li>Click "Execute" to start the job</li>
+                <li>Monitor progress in real-time with live console output</li>
+              </ol>
+              <h4 className="font-semibold mt-4">Execution Parameters:</h4>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>Target Hosts:</strong> Specify IP addresses or hostnames (one per line)</li>
+                <li><strong>Instance Group:</strong> Select AWX instance group for execution routing</li>
+                <li><strong>Configuration:</strong> Provide any template-specific settings</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          title: 'Execution History',
+          content: (
+            <div className="space-y-3">
+              <p>View complete execution history for all catalog runs with detailed logs and artifacts.</p>
+              <h4 className="font-semibold mt-4">Accessing History:</h4>
+              <ol className="list-decimal list-inside space-y-2 ml-4">
+                <li>Go to the Catalog page</li>
+                <li>Click "View History" button in the header</li>
+                <li>Filter by status (All, Success, Failed, Running)</li>
+                <li>Click "View Logs" on any execution to see details</li>
+              </ol>
+              <h4 className="font-semibold mt-4">History Information:</h4>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>Status:</strong> Visual indicators for success/failed/running states</li>
+                <li><strong>Catalog Name:</strong> The template that was executed</li>
+                <li><strong>Namespace:</strong> Organizational category</li>
+                <li><strong>AWX Job ID:</strong> Unique identifier for tracking in AWX</li>
+                <li><strong>Duration:</strong> Time taken for execution</li>
+                <li><strong>Executed By:</strong> User who initiated the run</li>
+                <li><strong>Artifacts:</strong> JSON results and output data</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          title: 'Real-time Monitoring',
+          content: (
+            <div className="space-y-3">
+              <p>The catalog execution page provides real-time monitoring with automatic status updates.</p>
+              <h4 className="font-semibold mt-4">Live Features:</h4>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>Auto-polling:</strong> Status updates every 3 seconds</li>
+                <li><strong>Console Output:</strong> Live stdout from AWX jobs</li>
+                <li><strong>Status Indicators:</strong> Visual feedback with icons and colors</li>
+                <li><strong>Completion Notifications:</strong> Success/failure messages with artifacts</li>
+              </ul>
+              <p className="mt-4 text-sm" style={{ color: 'var(--muted)' }}>
+                💡 The Execute button automatically changes from "Executing..." back to "Execute" when the job completes.
+              </p>
+            </div>
+          )
+        }
+      ]
+    },
+    {
       id: 'monitoring',
       title: 'Activity & Audit',
       icon: FileText,
@@ -135,9 +224,10 @@ export default function DocumentationPage() {
           title: 'Activity Logs',
           content: (
             <div className="space-y-3">
-              <p>The Activity page shows execution logs for all automation runs, helping you track and troubleshoot executions.</p>
+              <p>The Activity page shows execution logs for all automation runs and catalog executions, helping you track and troubleshoot executions.</p>
               <h4 className="font-semibold mt-4">Features:</h4>
               <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>Unified View:</strong> See both scheduled automations and catalog executions in one place</li>
                 <li><strong>Search:</strong> Find runs by automation name or run ID</li>
                 <li><strong>Status Filters:</strong> Filter by All, Success, Failed, Running, or Pending status</li>
                 <li><strong>Execution Details:</strong> View parameters, results, and error messages for each run</li>
@@ -157,24 +247,28 @@ export default function DocumentationPage() {
           title: 'Audit Report',
           content: (
             <div className="space-y-3">
-              <p>The Audit Report provides visual analytics and statistics about automation execution trends.</p>
+              <p>The Audit Report provides visual analytics and statistics about both automation and catalog execution trends combined.</p>
+              <h4 className="font-semibold mt-4">Unified Tracking:</h4>
+              <p>All statistics and charts now include both scheduled automations and catalog executions for complete visibility into your automation platform usage.</p>
               <h4 className="font-semibold mt-4">Time Range Views:</h4>
               <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>30 Days:</strong> View execution data for the last 30 days</li>
                 <li><strong>Daily:</strong> View execution data for the last 7 days</li>
                 <li><strong>Weekly:</strong> See trends over the past 8 weeks</li>
                 <li><strong>Monthly:</strong> Analyze data for the last 6 months</li>
+                <li><strong>Custom Range:</strong> Select specific date ranges</li>
               </ul>
               <h4 className="font-semibold mt-4">Visualizations:</h4>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong>Status Distribution (Pie Chart):</strong> Shows the breakdown of runs by status</li>
-                <li><strong>Execution Trend (Bar Graph):</strong> Displays execution history over time
+                <li><strong>Status Distribution (Pie Chart):</strong> Shows the breakdown of all executions by status</li>
+                <li><strong>Execution Trend (Bar Graph):</strong> Displays combined execution history over time
                   <ul className="list-disc list-inside ml-6 mt-1">
                     <li>Click status buttons in the legend to show/hide specific statuses</li>
                     <li>Each bar shows counts for Success (green), Failed (red), Running (blue), and Pending (yellow)</li>
                     <li>Hover over bars to see exact counts</li>
                   </ul>
                 </li>
-                <li><strong>Summary Cards:</strong> Quick stats showing Total, Success, Failed, Running, and Pending counts</li>
+                <li><strong>Summary Cards:</strong> Quick stats showing Total, Success, Failed, Running, and Pending counts for all executions</li>
               </ul>
               <p className="mt-4 text-sm" style={{ color: 'var(--muted)' }}>
                 💡 Use the interactive legend on the execution trend graph to toggle visibility of each status type for focused analysis.
@@ -389,6 +483,21 @@ export default function DocumentationPage() {
             );
           })
         )}
+      </div>
+
+      {/* Footer with Author Information */}
+      <div className="mt-12 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="text-center space-y-2">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            <strong>Author:</strong> Shinish Sasidharan
+          </p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Last Updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Version 1.0 - Autoclik Automation Platform
+          </p>
+        </div>
       </div>
     </div>
   );

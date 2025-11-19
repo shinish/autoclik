@@ -42,17 +42,21 @@ export default function ActivityPage() {
       const runsData = await runsRes.json();
       const activitiesData = await activitiesRes.json();
 
-      setRuns(runsData);
-      setActivities(activitiesData);
+      // Ensure data is arrays
+      const runsArray = Array.isArray(runsData) ? runsData : [];
+      const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+
+      setRuns(runsArray);
+      setActivities(activitiesArray);
 
       // Merge both types of activities
       const merged = [
-        ...runsData.map(run => ({
+        ...runsArray.map(run => ({
           ...run,
           type: 'run',
           timestamp: run.startedAt,
         })),
-        ...activitiesData.map(activity => ({
+        ...activitiesArray.map(activity => ({
           ...activity,
           type: 'activity',
           timestamp: activity.createdAt,
@@ -329,7 +333,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.parameters || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.parameters || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.parameters;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}
@@ -342,7 +352,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.result || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.result || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.result;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}
@@ -355,7 +371,13 @@ export default function ActivityPage() {
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
                               style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
                             >
-                              {JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2)}
+                              {(() => {
+                                try {
+                                  return JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2);
+                                } catch (e) {
+                                  return item.artifacts;
+                                }
+                              })()}
                             </pre>
                           </details>
                         )}

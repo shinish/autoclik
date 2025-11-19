@@ -1,87 +1,108 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('Creating Connectivity Check automation...');
+async function addConnectivityAutomation() {
+  try {
+    // Get the current user (assuming admin user)
+    const user = await prisma.user.findFirst({
+      where: { role: 'admin' }
+    });
 
-  // Create the automation with the exact custom body from test.txt
-  const automation = await prisma.automation.create({
-    data: {
-      name: 'Port Connectivity Check',
-      namespace: 'infra',
-      description: 'Test network connectivity to destination IP and ports',
-      keywords: JSON.stringify(['connectivity', 'network', 'port', 'test']),
-      tags: JSON.stringify(['network', 'connectivity']),
+    if (!user) {
+      console.error('No admin user found');
+      process.exit(1);
+    }
 
-      // Form schema - defines the UI form fields
-      formSchema: JSON.stringify([
-        {
-          type: 'text',
-          label: 'Source System',
-          key: 'source_system',
-          required: true,
-          placeholder: 'VRT-PDC',
-          helpText: 'Source system identifier'
-        },
-        {
-          type: 'text',
-          label: 'Destination IP',
-          key: 'destn_ip',
-          required: true,
-          placeholder: '10.118.234.75',
-          helpText: 'IP address to test connectivity'
-        },
-        {
-          type: 'text',
-          label: 'Ports',
-          key: 'ports_input',
-          required: true,
-          placeholder: '9419',
-          helpText: 'Port numbers to test (comma-separated for multiple)'
-        }
-      ]),
+    console.log(`Creating automation for user: ${user.email}`);
 
-      templateId: 'your-template-id-here', // Replace with your AWX template ID
-      inventoryId: null, // Not needed if instance_groups is used
+    // Check if automation already exists
+    const existing = await prisma.automation.findFirst({
+      where: { name: 'Server Connectivity Check' }
+    });
 
-      // Custom body - exact structure from test.txt with template variables
-      customBody: JSON.stringify({
-        instance_groups: [298],
-        extra_vars: {
-          source_system: ['{{form.source_system}}'],
-          destn_ip: '{{form.destn_ip}}',
-          ports_input: '{{form.ports_input}}'
-        }
-      }),
+    if (existing) {
+      console.log('Automation already exists with ID:', existing.id);
+      console.log('Deleting existing automation...');
+      await prisma.automation.delete({
+        where: { id: existing.id }
+      });
+    }
 
-      pinned: true,
-      featured: true,
-      createdBy: 'admin@example.com',
-    },
-  });
+    // Create the automation
+    const automation = await prisma.automation.create({
+      data: {
+        id: '069502287adeff1da8efbe880eb05069', // Unique ID
+        name: 'Server Connectivity Check',
+        namespace: 'infrastructure',
+        description: 'Check network connectivity from the AWX server to verify internet access and DNS resolution. Returns JSON artifacts with Success/Failed status for each host.',
+        keywords: JSON.stringify(['connectivity', 'network', 'ping', 'health', 'check', 'dns', 'http', 'https']),
+        tags: JSON.stringify(['infrastructure', 'monitoring', 'network']),
+        formSchema: JSON.stringify([
+          {
+            type: 'textarea',
+            label: 'Target Hosts',
+            key: 'check_hosts',
+            required: true,
+            placeholder: 'google.com\ngithub.com\n8.8.8.8',
+            helpText: 'Enter one host per line (domains or IP addresses). Each host will be tested for HTTP/HTTPS connectivity.',
+            defaultValue: 'google.com\ngithub.com\n8.8.8.8'
+          },
+          {
+            type: 'number',
+            label: 'Connection Timeout (seconds)',
+            key: 'timeout',
+            required: false,
+            placeholder: '5',
+            helpText: 'Maximum time to wait for each connection attempt',
+            defaultValue: '5'
+          }
+        ]),
+        templateId: '8', // AWX job template ID for connectivity check
+        customBody: JSON.stringify({
+          extra_vars: {
+            check_hosts: '{{form.check_hosts_array}}',
+            timeout: '{{form.timeout}}'
+          }
+        }, null, 2),
+        pinned: true,
+        featured: true,
+        runs: 0,
+        createdBy: user.email
+      }
+    });
 
-  console.log('✅ Automation created successfully!');
-  console.log('\nAutomation Details:');
-  console.log('-------------------');
-  console.log('ID:', automation.id);
-  console.log('Name:', automation.name);
-  console.log('\nCustom Body:');
-  console.log(JSON.stringify(JSON.parse(automation.customBody), null, 2));
-  console.log('\nForm Schema:');
-  console.log(JSON.stringify(JSON.parse(automation.formSchema), null, 2));
-  console.log('\n📝 To use this automation:');
-  console.log('1. Go to http://localhost:3000/catalog');
-  console.log('2. Find "Port Connectivity Check"');
-  console.log('3. Click to run it');
-  console.log('4. Fill in the form with your values');
-  console.log('5. Execute!');
+    console.log('✅ Automation created successfully!');
+    console.log('ID:', automation.id);
+    console.log('Name:', automation.name);
+    console.log('Template ID:', automation.templateId);
+    console.log('Namespace:', automation.namespace);
+
+    // Create activity log
+    await prisma.activity.create({
+      data: {
+        id: `activity-${Date.now()}`,
+        action: 'created',
+        entityType: 'automation',
+        entityId: automation.id,
+        entityName: automation.name,
+        performedBy: user.email,
+        description: `Created automation: ${automation.name}`,
+        metadata: JSON.stringify({
+          automationId: automation.id,
+          automationName: automation.name,
+          namespace: automation.namespace
+        })
+      }
+    });
+
+    console.log('✅ Activity log created');
+
+  } catch (error) {
+    console.error('Error creating automation:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-main()
-  .catch((e) => {
-    console.error('Error:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+addConnectivityAutomation();

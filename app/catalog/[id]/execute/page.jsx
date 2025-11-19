@@ -70,7 +70,7 @@ export default function CatalogExecutePage() {
           // Initialize form values
           const initialValues = {};
           schemaArray.forEach(field => {
-            initialValues[field.name] = field.default || '';
+            initialValues[field.key] = field.defaultValue || '';
           });
           setFormValues(initialValues);
         } catch (e) {
@@ -239,8 +239,8 @@ export default function CatalogExecutePage() {
         return (
           <textarea
             required={field.required}
-            value={formValues[field.name] || ''}
-            onChange={(e) => setFormValues({ ...formValues, [field.name]: e.target.value })}
+            value={formValues[field.key] || ''}
+            onChange={(e) => setFormValues({ ...formValues, [field.key]: e.target.value })}
             placeholder={field.placeholder || ''}
             rows={field.rows || 4}
             className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 resize-none"
@@ -252,8 +252,8 @@ export default function CatalogExecutePage() {
         return (
           <select
             required={field.required}
-            value={formValues[field.name] || ''}
-            onChange={(e) => setFormValues({ ...formValues, [field.name]: e.target.value })}
+            value={formValues[field.key] || ''}
+            onChange={(e) => setFormValues({ ...formValues, [field.key]: e.target.value })}
             className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{ ...commonStyles, height: '42px' }}
           >
@@ -271,8 +271,8 @@ export default function CatalogExecutePage() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={formValues[field.name] || false}
-              onChange={(e) => setFormValues({ ...formValues, [field.name]: e.target.checked })}
+              checked={formValues[field.key] || false}
+              onChange={(e) => setFormValues({ ...formValues, [field.key]: e.target.checked })}
               className="rounded focus:ring-2 focus:ring-offset-2"
               style={{ accentColor: 'var(--primary)' }}
             />
@@ -287,8 +287,8 @@ export default function CatalogExecutePage() {
           <input
             type={field.type || 'text'}
             required={field.required}
-            value={formValues[field.name] || ''}
-            onChange={(e) => setFormValues({ ...formValues, [field.name]: e.target.value })}
+            value={formValues[field.key] || ''}
+            onChange={(e) => setFormValues({ ...formValues, [field.key]: e.target.value })}
             placeholder={field.placeholder || ''}
             className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={commonStyles}
@@ -394,15 +394,15 @@ export default function CatalogExecutePage() {
               </p>
             ) : (
               formSchema.map((field, idx) => (
-                <div key={idx}>
+                <div key={field.key || idx}>
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                     {field.label}
                     {field.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                   {renderFormField(field)}
-                  {field.description && field.type !== 'checkbox' && (
+                  {field.helpText && field.type !== 'checkbox' && (
                     <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                      {field.description}
+                      {field.helpText}
                     </p>
                   )}
                 </div>
@@ -537,14 +537,14 @@ export default function CatalogExecutePage() {
             ref={consoleRef}
             className="console-output rounded-lg p-4 font-mono text-xs overflow-y-auto"
             style={{
-              backgroundColor: '#1a1a1a',
-              color: '#00ff00',
+              backgroundColor: '#ffffff',
+              color: '#000000',
               height: '500px',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
               overflowY: 'scroll',
               scrollbarWidth: 'thin',
-              scrollbarColor: '#00ff00 #2a2a2a'
+              scrollbarColor: '#000000 #f0f0f0'
             }}
           >
             {consoleOutput || 'No output yet. Execute the catalog to see results.'}

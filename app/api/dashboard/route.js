@@ -28,20 +28,49 @@ export async function GET(request) {
       runsFilter.executedBy = userEmail;
     }
 
-    const runs30d = await prisma.run.count({
+    // Get runs from both automation runs and catalog executions
+    const automationRuns = await prisma.run.count({
       where: runsFilter,
     });
 
-    // Calculate success rate from last 30 days (filtered by user)
-    const totalRuns = await prisma.run.count({
+    // Filter catalog executions by user if userEmail is provided
+    const catalogFilter = {
+      startedAt: {
+        gte: thirtyDaysAgo,
+      },
+    };
+    if (userEmail) {
+      catalogFilter.executedBy = userEmail;
+    }
+
+    const catalogRuns = await prisma.catalogExecution.count({
+      where: catalogFilter,
+    });
+
+    const runs30d = automationRuns + catalogRuns;
+
+    // Calculate success rate from last 30 days (filtered by user) - combined
+    const totalAutomationRuns = await prisma.run.count({
       where: runsFilter,
     });
-    const successfulRuns = await prisma.run.count({
+    const totalCatalogRuns = await prisma.catalogExecution.count({
+      where: catalogFilter,
+    });
+    const totalRuns = totalAutomationRuns + totalCatalogRuns;
+
+    const successfulAutomationRuns = await prisma.run.count({
       where: {
         ...runsFilter,
         status: 'success'
       },
     });
+    const successfulCatalogRuns = await prisma.catalogExecution.count({
+      where: {
+        ...catalogFilter,
+        status: 'success'
+      },
+    });
+    const successfulRuns = successfulAutomationRuns + successfulCatalogRuns;
     const successRate = totalRuns > 0
       ? ((successfulRuns / totalRuns) * 100).toFixed(1) + '%'
       : '0%';

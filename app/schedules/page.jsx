@@ -42,9 +42,11 @@ export default function SchedulesPage() {
     try {
       const res = await fetch('/api/automations');
       const data = await res.json();
-      setAutomations(data);
+      console.log('Fetched automations:', data); // Debug log
+      setAutomations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching automations:', error);
+      setAutomations([]);
     }
   };
 

@@ -682,7 +682,24 @@ export default function AuditPage() {
             <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
               Status Distribution
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Date Filter Buttons */}
+              <div className="flex items-center gap-1">
+                {['all', 'today', '7days', '30days', '90days'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setStatusDateFilter(filter)}
+                    className="px-2 py-1 rounded text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: statusDateFilter === filter ? 'var(--primary)' : 'var(--bg)',
+                      color: statusDateFilter === filter ? 'white' : 'var(--text)',
+                      border: `1px solid ${statusDateFilter === filter ? 'var(--primary)' : 'var(--border)'}`
+                    }}
+                  >
+                    {filter === 'all' ? 'All' : filter === 'today' ? 'Today' : filter.replace('days', 'd')}
+                  </button>
+                ))}
+              </div>
               {/* Namespace Filter */}
               <select
                 value={statusNamespaceFilter}
@@ -784,7 +801,24 @@ export default function AuditPage() {
             <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
               Execution Trend ({timeRange.charAt(0).toUpperCase() + timeRange.slice(1)})
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Date Filter Buttons */}
+              <div className="flex items-center gap-1">
+                {['all', 'today', '7days', '30days', '90days'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setExecutionDateFilter(filter)}
+                    className="px-2 py-1 rounded text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: executionDateFilter === filter ? 'var(--primary)' : 'var(--bg)',
+                      color: executionDateFilter === filter ? 'white' : 'var(--text)',
+                      border: `1px solid ${executionDateFilter === filter ? 'var(--primary)' : 'var(--border)'}`
+                    }}
+                  >
+                    {filter === 'all' ? 'All' : filter === 'today' ? 'Today' : filter.replace('days', 'd')}
+                  </button>
+                ))}
+              </div>
               {/* Namespace Filter */}
               <select
                 value={executionNamespaceFilter}

@@ -18,6 +18,7 @@ export default function SettingsPage() {
 
   // General settings state
   const [showEmailPassword, setShowEmailPassword] = useState(false);
+  const [showApiToken, setShowApiToken] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('');
@@ -744,6 +745,8 @@ export default function SettingsPage() {
     setModalType(type);
     setSelectedItem(item);
     setShowModal(true);
+    // Reset token visibility when opening modal
+    setShowApiToken(false);
     if (item) {
       if (type === 'environment') {
         setFormData({
@@ -1818,10 +1821,7 @@ export default function SettingsPage() {
                     </td>
                     <td className="px-6 py-4 flex gap-2">
                       <button
-                        onClick={() => {
-                          setSelectedItem(environment);
-                          openModal('environment');
-                        }}
+                        onClick={() => openModal('environment', environment)}
                         className="p-2 rounded-lg transition-all hover:scale-110"
                         style={{
                           backgroundColor: 'var(--bg)',
@@ -2777,19 +2777,29 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                       API Token
                     </label>
-                    <input
-                      type="password"
-                      value={formData.token}
-                      onChange={(e) => setFormData({ ...formData, token: e.target.value })}
-                      placeholder="Enter AWX API token (optional)"
-                      className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--bg)',
-                        color: 'var(--text)',
-                        focusRing: 'var(--accent)'
-                      }}
-                    />
+                    <div className="relative">
+                      <input
+                        type={showApiToken ? "text" : "password"}
+                        value={formData.token}
+                        onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                        placeholder="Enter AWX API token (optional)"
+                        className="w-full rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--bg)',
+                          color: 'var(--text)',
+                          focusRing: 'var(--accent)'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiToken(!showApiToken)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--muted)' }}
+                      >
+                        {showApiToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
                       Optional: Bearer token for API authentication
                     </p>

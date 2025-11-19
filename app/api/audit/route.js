@@ -76,17 +76,30 @@ export async function GET(request) {
       take: 10000, // High limit to get all runs in range
     });
 
-    // Calculate overall stats
+    // Get all catalog executions (filtered by date range)
+    const catalogExecutions = await prisma.catalogExecution.findMany({
+      where: whereClause,
+      orderBy: { startedAt: 'desc' },
+      take: 10000,
+    });
+
+    // Combine runs and catalog executions
+    const allExecutions = [
+      ...runs.map(r => ({ ...r, type: 'automation' })),
+      ...catalogExecutions.map(e => ({ ...e, type: 'catalog' }))
+    ].sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+
+    // Calculate overall stats (combined)
     const stats = {
-      total: runs.length,
-      success: runs.filter(r => r.status === 'success').length,
-      failed: runs.filter(r => r.status === 'failed').length,
-      running: runs.filter(r => r.status === 'running').length,
-      pending: runs.filter(r => r.status === 'pending').length,
+      total: allExecutions.length,
+      success: allExecutions.filter(r => r.status === 'success').length,
+      failed: allExecutions.filter(r => r.status === 'failed').length,
+      running: allExecutions.filter(r => r.status === 'running').length,
+      pending: allExecutions.filter(r => r.status === 'pending').length,
     };
 
-    // Generate chart data based on time range
-    const chartData = generateChartData(runs, range, startDate, endDate);
+    // Generate chart data based on time range (using combined data)
+    const chartData = generateChartData(allExecutions, range, startDate, endDate);
 
     return NextResponse.json({ stats, chartData }, { headers });
   } catch (error) {

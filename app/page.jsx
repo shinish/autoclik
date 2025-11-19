@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Edit, X, Plus } from 'lucide-react';
+import { CalendarClock, CheckCircle, XCircle, AlertCircle, Info, Edit, X, Plus, BookOpen } from 'lucide-react';
 import { StatCard } from '@/components/Card';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';
@@ -20,7 +20,6 @@ export default function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     // Check if user is admin from localStorage
@@ -51,7 +50,6 @@ export default function Dashboard() {
       setStats(data.stats);
       setRecentActivity(data.recentActivity);
       setNotifications(data.notifications);
-      setShowWelcome(data.firstTimeSetup || false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -81,23 +79,6 @@ export default function Dashboard() {
     setNotifications(notifications.filter(n => n.id !== notificationId));
   };
 
-  const dismissWelcome = async () => {
-    try {
-      // Update the first_time_setup setting to false
-      await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: 'first_time_setup',
-          value: 'false',
-        }),
-      });
-      setShowWelcome(false);
-    } catch (error) {
-      console.error('Error dismissing welcome message:', error);
-    }
-  };
-
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'error':
@@ -125,7 +106,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+        <h1 className="text-4xl font-thin" style={{ color: 'var(--muted)' }}>
           {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName}
         </h1>
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
@@ -133,63 +114,6 @@ export default function Dashboard() {
           <span>{getFormattedDateTime()}</span>
         </div>
       </div>
-
-      {/* Welcome Message for First Time Setup */}
-      {showWelcome && (
-        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--primary)' }}>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--primary)' }}>
-                Welcome to the Automation Platform!
-              </h2>
-              <p className="text-sm mb-4" style={{ color: 'var(--text)' }}>
-                You're all set with your admin account. Get started by:
-              </p>
-              <ul className="space-y-2 text-sm" style={{ color: 'var(--text)' }}>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Configuring AWX connection in Settings</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Creating additional user accounts</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Exploring the automation platform features</span>
-                </li>
-              </ul>
-              <div className="mt-4 flex gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    dismissWelcome();
-                    router.push('/settings');
-                  }}
-                >
-                  Go to Settings
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    dismissWelcome();
-                    router.push('/schedules');
-                  }}
-                >
-                  View Schedules
-                </Button>
-              </div>
-            </div>
-            <button
-              onClick={dismissWelcome}
-              className="ml-4 p-1 rounded hover:opacity-70 transition-opacity"
-              aria-label="Dismiss welcome message"
-            >
-              <X className="h-5 w-5" style={{ color: 'var(--primary)' }} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -208,6 +132,9 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-3">
           <Button variant="primary" icon={CalendarClock} onClick={() => router.push('/schedules')}>
             Create Schedule
+          </Button>
+          <Button variant="primary" icon={BookOpen} onClick={() => router.push('/catalog')}>
+            Create Catalog
           </Button>
         </div>
       </div>
