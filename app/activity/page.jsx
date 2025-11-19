@@ -42,17 +42,21 @@ export default function ActivityPage() {
       const runsData = await runsRes.json();
       const activitiesData = await activitiesRes.json();
 
-      setRuns(runsData);
-      setActivities(activitiesData);
+      // Ensure data is arrays
+      const runsArray = Array.isArray(runsData) ? runsData : [];
+      const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+
+      setRuns(runsArray);
+      setActivities(activitiesArray);
 
       // Merge both types of activities
       const merged = [
-        ...runsData.map(run => ({
+        ...runsArray.map(run => ({
           ...run,
           type: 'run',
           timestamp: run.startedAt,
         })),
-        ...activitiesData.map(activity => ({
+        ...activitiesArray.map(activity => ({
           ...activity,
           type: 'activity',
           timestamp: activity.createdAt,
