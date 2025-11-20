@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle } from 'lucide-react';
 
 export default function ActivityPage() {
   const [runs, setRuns] = useState([]);
@@ -71,6 +71,39 @@ export default function ActivityPage() {
     } catch (error) {
       console.error('Error fetching activities:', error);
       setLoading(false);
+    }
+  };
+
+  const handleStopExecution = async (item) => {
+    if (!item.awxJobId || (item.status !== 'running' && item.status !== 'pending')) {
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to stop this ${item.type === 'run' ? 'automation' : 'catalog'} execution?`)) {
+      return;
+    }
+
+    try {
+      const endpoint = item.type === 'run'
+        ? `/api/automations/${item.automationId}/cancel`
+        : `/api/catalog/${item.automationId || item.catalogId}/cancel`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ awxJobId: item.awxJobId })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to cancel execution');
+      }
+
+      alert('Execution cancelled successfully');
+      fetchAllData(); // Refresh data
+    } catch (error) {
+      console.error('Error cancelling execution:', error);
+      alert(`Failed to cancel execution: ${error.message}`);
     }
   };
 
@@ -281,6 +314,17 @@ export default function ActivityPage() {
                               ✓ Validated
                             </span>
                           )}
+                          {(item.status === 'running' || item.status === 'pending') && item.awxJobId && (
+                            <button
+                              onClick={() => handleStopExecution(item)}
+                              className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ backgroundColor: '#DC2626', color: 'white' }}
+                              title="Stop execution"
+                            >
+                              <StopCircle className="h-3 w-3" />
+                              Stop
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm mt-3" style={{ color: 'var(--muted)' }}>
                           <div>
@@ -343,29 +387,10 @@ export default function ActivityPage() {
                             </pre>
                           </details>
                         )}
-                        {item.result && (
-                          <details className="mt-3">
-                            <summary className="text-sm font-medium cursor-pointer" style={{ color: 'var(--muted)' }}>
-                              AWX Job Response
-                            </summary>
-                            <pre
-                              className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
-                              style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
-                            >
-                              {(() => {
-                                try {
-                                  return JSON.stringify(JSON.parse(item.result || '{}'), null, 2);
-                                } catch (e) {
-                                  return item.result;
-                                }
-                              })()}
-                            </pre>
-                          </details>
-                        )}
                         {item.artifacts && (
                           <details className="mt-3">
                             <summary className="text-sm font-medium cursor-pointer" style={{ color: 'var(--muted)' }}>
-                              Job Artifacts
+                              Job Output
                             </summary>
                             <pre
                               className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
