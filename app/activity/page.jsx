@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User, ExternalLink } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User, ExternalLink, Download } from 'lucide-react';
+import { prepareActivityDataForExport, convertToCSV, downloadCSV, generateFilename } from '@/lib/exportUtils';
 
 export default function ActivityPage() {
   const [runs, setRuns] = useState([]);
@@ -254,6 +255,25 @@ export default function ActivityPage() {
     return `${awxBaseUrl}/#/jobs/playbook/${awxJobId}`;
   };
 
+  const handleDownloadReport = () => {
+    try {
+      // Prepare the data for export
+      const preparedData = prepareActivityDataForExport(filteredActivities);
+
+      // Convert to CSV
+      const csvContent = convertToCSV(preparedData);
+
+      // Generate filename with timestamp
+      const filename = generateFilename('activity-report');
+
+      // Trigger download
+      downloadCSV(csvContent, filename);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -264,9 +284,24 @@ export default function ActivityPage() {
             Comprehensive execution logs, activity history, and audit trails for all automations and catalog items
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
-          <Info className="h-4 w-4" />
-          <span>{filteredActivities.length} of {allActivities.length} activities</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
+            <Info className="h-4 w-4" />
+            <span>{filteredActivities.length} of {allActivities.length} activities</span>
+          </div>
+          <button
+            onClick={handleDownloadReport}
+            disabled={filteredActivities.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'white',
+            }}
+            title="Download activity report as CSV"
+          >
+            <Download className="h-4 w-4" />
+            Download Report
+          </button>
         </div>
       </div>
 
