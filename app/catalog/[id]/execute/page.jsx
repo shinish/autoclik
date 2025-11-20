@@ -18,19 +18,20 @@ export default function CatalogExecutePage() {
   const [formSchema, setFormSchema] = useState([]);
   const [consoleOutput, setConsoleOutput] = useState('');
   const [htmlResponse, setHtmlResponse] = useState('');
-  const [pollingInterval, setPollingInterval] = useState(null);
   const [customBody, setCustomBody] = useState('');
   const [showBodyEditor, setShowBodyEditor] = useState(false);
   const [bodyError, setBodyError] = useState('');
 
   const consoleRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
     fetchCatalog();
 
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
   }, [catalogId]);
@@ -149,6 +150,12 @@ export default function CatalogExecutePage() {
   };
 
   const startPolling = (executionId) => {
+    // Clear any existing polling interval first
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/catalog/executions/${executionId}`);
@@ -176,6 +183,7 @@ export default function CatalogExecutePage() {
           // Stop polling if execution is complete
           if (data.status === 'success' || data.status === 'failed' || data.status === 'canceled') {
             clearInterval(interval);
+            pollingIntervalRef.current = null;
             setExecuting(false);
 
             if (data.status === 'success') {
@@ -192,7 +200,7 @@ export default function CatalogExecutePage() {
       }
     }, 3000); // Poll every 3 seconds
 
-    setPollingInterval(interval);
+    pollingIntervalRef.current = interval;
   };
 
   const handleCancel = async () => {
@@ -205,8 +213,9 @@ export default function CatalogExecutePage() {
 
       if (res.ok) {
         setConsoleOutput(prev => prev + '\n\nCanceling job...');
-        if (pollingInterval) {
-          clearInterval(pollingInterval);
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
         }
       }
     } catch (error) {
