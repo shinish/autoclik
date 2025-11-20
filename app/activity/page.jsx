@@ -271,16 +271,16 @@ export default function ActivityPage() {
       </div>
 
       {/* Search and Filters Card */}
-      <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+      <div className="rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
         {/* Main Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, ID, AWX Job ID, action, user, or description..."
-            className="w-full rounded-lg py-3 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+            placeholder="Search by name, ID, AWX Job ID, action, user..."
+            className="w-full rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{
               border: '1px solid var(--border)',
               backgroundColor: 'var(--bg)',
@@ -291,15 +291,15 @@ export default function ActivityPage() {
         </div>
 
         {/* Quick Filters */}
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           {/* Type Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Type:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Type:</span>
             {['all', 'runs', 'activities'].map((type) => (
               <button
                 key={type}
                 onClick={() => setTypeFilter(type)}
-                className="px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize"
+                className="px-2.5 py-1 rounded text-xs font-medium transition-all capitalize"
                 style={{
                   backgroundColor: typeFilter === type ? 'var(--primary)' : 'var(--bg)',
                   color: typeFilter === type ? 'white' : 'var(--text)',
@@ -312,13 +312,13 @@ export default function ActivityPage() {
           </div>
 
           {/* Status Filter (for runs) */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Status:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Status:</span>
             {['all', 'success', 'failed', 'running', 'pending'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className="px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize"
+                className="px-2.5 py-1 rounded text-xs font-medium transition-all capitalize"
                 style={{
                   backgroundColor: statusFilter === status ? 'var(--primary)' : 'var(--bg)',
                   color: statusFilter === status ? 'white' : 'var(--text)',
@@ -333,16 +333,16 @@ export default function ActivityPage() {
           {/* Advanced Filters Toggle */}
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="ml-auto flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-medium transition-all"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-all"
             style={{
               backgroundColor: showAdvancedFilters ? 'var(--primary)' : 'var(--bg)',
               color: showAdvancedFilters ? 'white' : 'var(--text)',
               border: `1px solid ${showAdvancedFilters ? 'var(--primary)' : 'var(--border)'}`
             }}
           >
-            <Filter className="h-3.5 w-3.5" />
-            Advanced Filters
-            {showAdvancedFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <Filter className="h-3 w-3" />
+            Advanced
+            {showAdvancedFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </button>
         </div>
 
