@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User, ExternalLink } from 'lucide-react';
 
 export default function ActivityPage() {
   const [runs, setRuns] = useState([]);
@@ -246,6 +246,12 @@ export default function ActivityPage() {
     const durationMs = end - start;
     const minutes = (durationMs / 1000 / 60).toFixed(1);
     return `${minutes} min`;
+  };
+
+  const getAWXJobUrl = (awxJobId) => {
+    // Get AWX URL from environment or use default
+    const awxBaseUrl = process.env.NEXT_PUBLIC_AWX_URL || 'http://127.0.0.1:59809';
+    return `${awxBaseUrl}/#/jobs/playbook/${awxJobId}`;
   };
 
   return (
@@ -525,7 +531,17 @@ export default function ActivityPage() {
                           {item.awxJobId && (
                             <div className="flex flex-col">
                               <span className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>AWX Job ID</span>
-                              <span className="text-sm font-mono" style={{ color: 'var(--text)' }}>{item.awxJobId}</span>
+                              <a
+                                href={getAWXJobUrl(item.awxJobId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-mono flex items-center gap-1 hover:underline transition-all"
+                                style={{ color: 'var(--primary)' }}
+                                title="Open job in AWX"
+                              >
+                                {item.awxJobId}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
                             </div>
                           )}
                           <div className="flex flex-col">
