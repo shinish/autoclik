@@ -101,8 +101,20 @@ export default function ActivityPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to cancel execution');
+        let errorMessage = 'Failed to cancel execution';
+        try {
+          const error = await res.json();
+          errorMessage = error.error || error.message || errorMessage;
+          if (error.details) {
+            console.error('Cancel error details:', error.details);
+          }
+        } catch (parseError) {
+          // If response is not JSON (e.g., HTML error page), get text
+          const errorText = await res.text();
+          console.error('Cancel error (non-JSON):', errorText);
+          errorMessage = `Failed to cancel execution (HTTP ${res.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       alert('Execution cancelled successfully');
