@@ -16,7 +16,7 @@
         method: GET
         timeout: "{{ timeout }}"
         validate_certs: no
-        status_code: -1
+        status_code: 200,201,202,203,204,205,206,300,301,302,303,304,307,308,400,401,403,404,405,500,502,503
       register: http_results
       loop: "{{ check_hosts }}"
       ignore_errors: yes
