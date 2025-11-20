@@ -257,12 +257,9 @@ export async function POST(request, { params }) {
       : `${(bodySize / 1024).toFixed(2)} KB`;
 
     const initialConsoleOutput = `
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                          CATALOG EXECUTION STARTED                            ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
+CATALOG EXECUTION STARTED
 
 📋 Execution Information:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Catalog Name      : ${catalog.name}
   Catalog ID        : ${catalog.id}
   Description       : ${catalog.description || 'N/A'}
@@ -274,15 +271,11 @@ export async function POST(request, { params }) {
   Execution ID      : ${execution.id}
   Started At        : ${formattedTime}
   Timestamp (ISO)   : ${timestamp.toISOString()}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📝 Form Parameters:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${parametersDisplay}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🌐 HTTP Request Details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Method            : POST
   URL               : ${awxUrl}
   Protocol          : HTTPS
@@ -295,16 +288,13 @@ ${parametersDisplay}
     Authorization   : Bearer ${maskedToken}
     Accept          : application/json
     User-Agent      : Catalog-Automation-Platform/1.0
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📦 Request Payload:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Body Size         : ${bodySizeFormatted}
   Format            : JSON
 
   Content:
 ${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).join('\n')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ⏳ Initiating connection to AWX server...
 ⏳ Sending POST request...
@@ -378,17 +368,14 @@ ${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).jo
 ✓ Response received!
 
 📥 HTTP Response Details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Status Code       : ${response.status} ${response.statusText}
   Response Time     : ${elapsedFormatted}
   Response Size     : ${responseSizeFormatted}
   Content-Type      : ${response.headers.get('content-type') || 'application/json'}
   Server            : ${response.headers.get('server') || 'AWX'}
   Received At       : ${responseTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🎯 AWX Job Information:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Job ID            : ${result.id || 'N/A'}
   Job Name          : ${result.name || 'N/A'}
   Job Type          : ${result.type || 'N/A'}
@@ -399,27 +386,21 @@ ${JSON.stringify(requestBody, null, 2).split('\n').map(line => '    ' + line).jo
   Inventory         : ${result.inventory || 'N/A'}
   Created By        : ${result.created_by?.username || 'N/A'}
   Launch Type       : ${result.launch_type || 'manual'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📊 Job Execution Details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ${result.id ? `Job started successfully in AWX` : 'Job queued'}
   ${result.url ? `Monitor at: ${catalog.environment.baseUrl}${result.url}` : ''}
   ${result.status === 'pending' ? '⏳ Job is in queue, waiting to start...' : ''}
   ${result.status === 'waiting' ? '⏸️  Job is waiting for dependencies...' : ''}
   ${result.status === 'running' ? '▶️  Job is currently running...' : ''}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📄 Complete Response Payload:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${JSON.stringify(result, null, 2).split('\n').map(line => '    ' + line).join('\n')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔄 Job execution initiated successfully!
 📊 The job is now running in AWX. The system will poll for updates every 3 seconds.
 💡 You can also view the job directly in AWX at: ${catalog.environment.baseUrl}/#/jobs/${result.id || ''}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
       } catch (e) {
         // Build non-JSON response console output
@@ -442,19 +423,15 @@ ${JSON.stringify(result, null, 2).split('\n').map(line => '    ' + line).join('\
 ⚠️  Received non-JSON response!
 
 📥 HTTP Response Details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Status Code       : ${response.status} ${response.statusText}
   Response Time     : ${elapsedFormatted}
   Response Size     : ${responseSizeFormatted}
   Content-Type      : ${contentType}
   Format            : ${isHTML ? 'HTML' : 'Plain Text'}
   Received At       : ${responseTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📄 Full Response Content:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${responseText}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 
         // Check if it's an HTML access denied page
@@ -551,17 +528,14 @@ ${responseText}
 ❌ EXECUTION FAILED!
 
 🚨 Error Information:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Error Category    : ${errorCategory}
   Error Type        : ${error.name || 'Error'}
   Error Message     : ${error.message}
   Error Code        : ${error.code || 'N/A'}
   Failed At         : ${errorTime.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}
   Timestamp (ISO)   : ${errorTime.toISOString()}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💡 Troubleshooting Steps:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${specificTips.length > 0 ? specificTips.map((tip, i) => `  ${i + 1}. ${tip}`).join('\n') : '  • Check AWX server logs for more details\n  • Verify all configuration settings\n  • Contact your administrator if issue persists'}
 
 General Tips:
@@ -569,19 +543,15 @@ General Tips:
   • Check AWX server status and logs
   • Verify network connectivity
   • Ensure all required fields are filled correctly
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 Stack Trace:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${error.stack || 'No stack trace available'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔗 Helpful Links:
   • AWX Documentation: https://docs.ansible.com/automation-controller/
   • API Reference: ${catalog.environment.baseUrl}/api/
   • Job Templates: ${catalog.environment.baseUrl}/#/templates
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 
       // Update execution with error and console output
