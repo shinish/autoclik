@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getAWXConfig } from '@/lib/awx';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function POST(request, { params }) {
   try {
     const { awxJobId } = await request.json();
-    const { id } = params;
+    const { id } = await params;
 
     if (!awxJobId) {
       return NextResponse.json(
@@ -13,7 +15,23 @@ export async function POST(request, { params }) {
       );
     }
 
-    const awxConfig = await getAWXConfig();
+    // Get catalog with environment
+    const catalog = await prisma.catalog.findUnique({
+      where: { id },
+      include: { environment: true },
+    });
+
+    if (!catalog || !catalog.environment) {
+      return NextResponse.json(
+        { error: 'Catalog or environment not found' },
+        { status: 404 }
+      );
+    }
+
+    const awxConfig = {
+      url: catalog.environment.baseUrl,
+      token: catalog.environment.token,
+    };
 
     // Cancel the job in AWX
     const cancelRes = await fetch(`${awxConfig.url}/api/v2/jobs/${awxJobId}/cancel/`, {

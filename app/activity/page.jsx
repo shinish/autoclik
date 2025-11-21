@@ -1,17 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User, ExternalLink } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertCircle, Info, Clock, Play, Plus, Trash2, Edit, FileText, StopCircle, ChevronDown, ChevronUp, Calendar, User, ExternalLink, Download, FileSpreadsheet } from 'lucide-react';
+import { prepareActivityDataForExport, convertToCSV, downloadCSV, generateFilename, exportAPIResultToExcel } from '@/lib/exportUtils';
 
 export default function ActivityPage() {
   const [runs, setRuns] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [allActivities, setAllActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all'); // all, runs, activities
-  const [actionFilter, setActionFilter] = useState('all'); // for activity actions
   const [userFilter, setUserFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -24,57 +21,22 @@ export default function ActivityPage() {
 
   useEffect(() => {
     filterActivities();
-  }, [search, statusFilter, typeFilter, actionFilter, userFilter, dateFrom, dateTo, allActivities]);
+  }, [search, statusFilter, userFilter, dateFrom, dateTo, runs]);
 
   const fetchAllData = async () => {
     try {
-      // Get user data from localStorage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const userEmail = user.email || '';
-      const userRole = user.role || 'user';
-
-      // Build query parameters for activity API
-      const activityParams = new URLSearchParams();
-      if (userEmail) activityParams.append('userEmail', userEmail);
-      if (userRole) activityParams.append('userRole', userRole);
-
-      // Fetch both runs and activities in parallel
-      const [runsRes, activitiesRes] = await Promise.all([
-        fetch('/api/runs'),
-        fetch(`/api/activity?${activityParams.toString()}`)
-      ]);
-
+      // Fetch only runs (automation executions)
+      const runsRes = await fetch('/api/runs');
       const runsData = await runsRes.json();
-      const activitiesData = await activitiesRes.json();
 
-      // Ensure data is arrays
+      // Ensure data is array and sort by startedAt descending
       const runsArray = Array.isArray(runsData) ? runsData : [];
-      const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+      runsArray.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
 
       setRuns(runsArray);
-      setActivities(activitiesArray);
-
-      // Merge both types of activities
-      const merged = [
-        ...runsArray.map(run => ({
-          ...run,
-          type: 'run',
-          timestamp: run.startedAt,
-        })),
-        ...activitiesArray.map(activity => ({
-          ...activity,
-          type: 'activity',
-          timestamp: activity.createdAt,
-        }))
-      ];
-
-      // Sort by timestamp descending
-      merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      setAllActivities(merged);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      console.error('Error fetching runs:', error);
       setLoading(false);
     }
   };
@@ -84,14 +46,12 @@ export default function ActivityPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to stop this ${item.type === 'run' ? 'automation' : 'catalog'} execution?`)) {
+    if (!confirm('Are you sure you want to stop this automation execution?')) {
       return;
     }
 
     try {
-      const endpoint = item.type === 'run'
-        ? `/api/automations/${item.automationId}/cancel`
-        : `/api/catalog/${item.automationId || item.catalogId}/cancel`;
+      const endpoint = `/api/automations/${item.automationId}/cancel`;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -100,12 +60,23 @@ export default function ActivityPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to cancel execution');
+        let errorMessage = 'Failed to cancel execution';
+        try {
+          const error = await res.json();
+          errorMessage = error.error || error.message || errorMessage;
+          if (error.details) {
+            console.error('Cancel error details:', error.details);
+          }
+        } catch (parseError) {
+          const errorText = await res.text();
+          console.error('Cancel error (non-JSON):', errorText);
+          errorMessage = `Failed to cancel execution (HTTP ${res.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       alert('Execution cancelled successfully');
-      fetchAllData(); // Refresh data
+      fetchAllData();
     } catch (error) {
       console.error('Error cancelling execution:', error);
       alert(`Failed to cancel execution: ${error.message}`);
@@ -113,37 +84,17 @@ export default function ActivityPage() {
   };
 
   const filterActivities = () => {
-    let filtered = allActivities;
+    let filtered = runs;
 
-    // Filter by type (all, runs, activities)
-    if (typeFilter === 'runs') {
-      filtered = filtered.filter(item => item.type === 'run');
-    } else if (typeFilter === 'activities') {
-      filtered = filtered.filter(item => item.type === 'activity');
-    }
-
-    // Filter by status (only show runs when status filter is active)
+    // Filter by status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        // Only show runs that match the status filter
-        return item.type === 'run' && item.status === statusFilter;
-      });
-    }
-
-    // Filter by action (for activities)
-    if (actionFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        return item.type === 'activity' && item.action === actionFilter;
-      });
+      filtered = filtered.filter(item => item.status === statusFilter);
     }
 
     // Filter by user
     if (userFilter) {
       const userLower = userFilter.toLowerCase();
-      filtered = filtered.filter(item => {
-        const user = item.type === 'run' ? item.executedBy : item.performedBy;
-        return user?.toLowerCase().includes(userLower);
-      });
+      filtered = filtered.filter(item => item.executedBy?.toLowerCase().includes(userLower));
     }
 
     // Filter by date range
@@ -151,7 +102,7 @@ export default function ActivityPage() {
       const fromDate = new Date(dateFrom);
       fromDate.setHours(0, 0, 0, 0);
       filtered = filtered.filter(item => {
-        const itemDate = new Date(item.timestamp);
+        const itemDate = new Date(item.startedAt);
         return itemDate >= fromDate;
       });
     }
@@ -160,7 +111,7 @@ export default function ActivityPage() {
       const toDate = new Date(dateTo);
       toDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(item => {
-        const itemDate = new Date(item.timestamp);
+        const itemDate = new Date(item.startedAt);
         return itemDate <= toDate;
       });
     }
@@ -168,54 +119,29 @@ export default function ActivityPage() {
     // Filter by search
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(item => {
-        if (item.type === 'run') {
-          return item.automation?.name?.toLowerCase().includes(searchLower) ||
-                 item.id?.toLowerCase().includes(searchLower) ||
-                 item.uniqueId?.toLowerCase().includes(searchLower) ||
-                 item.awxJobId?.toLowerCase().includes(searchLower);
-        } else {
-          return item.entityName?.toLowerCase().includes(searchLower) ||
-                 item.description?.toLowerCase().includes(searchLower) ||
-                 item.action?.toLowerCase().includes(searchLower);
-        }
-      });
+      filtered = filtered.filter(item =>
+        item.automation?.name?.toLowerCase().includes(searchLower) ||
+        item.id?.toLowerCase().includes(searchLower) ||
+        item.uniqueId?.toLowerCase().includes(searchLower) ||
+        item.awxJobId?.toLowerCase().includes(searchLower)
+      );
     }
 
     setFilteredActivities(filtered);
   };
 
-  const getActivityIcon = (item) => {
-    if (item.type === 'run') {
-      switch (item.status) {
-        case 'success':
-          return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
-        case 'failed':
-          return <XCircle className="h-5 w-5" style={{ color: '#ef4444' }} />;
-        case 'running':
-          return <Clock className="h-5 w-5 animate-spin" style={{ color: '#3b82f6' }} />;
-        case 'pending':
-          return <AlertCircle className="h-5 w-5" style={{ color: '#f59e0b' }} />;
-        default:
-          return <Play className="h-5 w-5" style={{ color: 'var(--muted)' }} />;
-      }
-    } else {
-      switch (item.action) {
-        case 'login':
-          return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
-        case 'logout':
-          return <XCircle className="h-5 w-5" style={{ color: '#6b7280' }} />;
-        case 'created':
-          return <Plus className="h-5 w-5" style={{ color: 'var(--success)' }} />;
-        case 'updated':
-          return <Edit className="h-5 w-5" style={{ color: '#3b82f6' }} />;
-        case 'deleted':
-          return <Trash2 className="h-5 w-5" style={{ color: '#ef4444' }} />;
-        case 'executed':
-          return <Play className="h-5 w-5" style={{ color: 'var(--primary)' }} />;
-        default:
-          return <FileText className="h-5 w-5" style={{ color: 'var(--muted)' }} />;
-      }
+  const getActivityIcon = (status) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />;
+      case 'failed':
+        return <XCircle className="h-5 w-5" style={{ color: '#ef4444' }} />;
+      case 'running':
+        return <Clock className="h-5 w-5 animate-spin" style={{ color: '#3b82f6' }} />;
+      case 'pending':
+        return <AlertCircle className="h-5 w-5" style={{ color: '#f59e0b' }} />;
+      default:
+        return <Play className="h-5 w-5" style={{ color: 'var(--muted)' }} />;
     }
   };
 
@@ -254,19 +180,53 @@ export default function ActivityPage() {
     return `${awxBaseUrl}/#/jobs/playbook/${awxJobId}`;
   };
 
+  const handleDownloadReport = () => {
+    try {
+      // Prepare the data for export
+      const preparedData = prepareActivityDataForExport(filteredActivities);
+
+      // Convert to CSV
+      const csvContent = convertToCSV(preparedData);
+
+      // Generate filename with timestamp
+      const filename = generateFilename('activity-report');
+
+      // Trigger download
+      downloadCSV(csvContent, filename);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Activity Dashboard</h1>
+          <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Execution History</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Comprehensive execution logs, activity history, and audit trails for all automations and catalog items
+            View and analyze automation execution logs with detailed parameters and results
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
-          <Info className="h-4 w-4" />
-          <span>{filteredActivities.length} of {allActivities.length} activities</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
+            <Info className="h-4 w-4" />
+            <span>{filteredActivities.length} of {runs.length} executions</span>
+          </div>
+          <button
+            onClick={handleDownloadReport}
+            disabled={filteredActivities.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'white',
+            }}
+            title="Download execution report as CSV"
+          >
+            <Download className="h-4 w-4" />
+            Download Report
+          </button>
         </div>
       </div>
 
@@ -292,26 +252,7 @@ export default function ActivityPage() {
 
         {/* Quick Filters */}
         <div className="mt-3 flex flex-wrap gap-2">
-          {/* Type Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Type:</span>
-            {['all', 'runs', 'activities'].map((type) => (
-              <button
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                className="px-2.5 py-1 rounded text-xs font-medium transition-all capitalize"
-                style={{
-                  backgroundColor: typeFilter === type ? 'var(--primary)' : 'var(--bg)',
-                  color: typeFilter === type ? 'white' : 'var(--text)',
-                  border: `1px solid ${typeFilter === type ? 'var(--primary)' : 'var(--border)'}`
-                }}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-
-          {/* Status Filter (for runs) */}
+          {/* Status Filter */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Status:</span>
             {['all', 'success', 'failed', 'running', 'pending'].map((status) => (
@@ -350,37 +291,11 @@ export default function ActivityPage() {
         {showAdvancedFilters && (
           <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'var(--border)' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Action Filter */}
-              <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
-                  <FileText className="h-3.5 w-3.5 inline mr-1" />
-                  Action Type
-                </label>
-                <select
-                  value={actionFilter}
-                  onChange={(e) => setActionFilter(e.target.value)}
-                  className="w-full rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--text)'
-                  }}
-                >
-                  <option value="all">All Actions</option>
-                  <option value="login">Login</option>
-                  <option value="logout">Logout</option>
-                  <option value="created">Created</option>
-                  <option value="updated">Updated</option>
-                  <option value="deleted">Deleted</option>
-                  <option value="executed">Executed</option>
-                </select>
-              </div>
-
               {/* User Filter */}
               <div>
                 <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
                   <User className="h-3.5 w-3.5 inline mr-1" />
-                  User
+                  Executed By
                 </label>
                 <input
                   type="text"
@@ -441,8 +356,6 @@ export default function ActivityPage() {
                 onClick={() => {
                   setSearch('');
                   setStatusFilter('all');
-                  setTypeFilter('all');
-                  setActionFilter('all');
                   setUserFilter('');
                   setDateFrom('');
                   setDateTo('');
@@ -461,16 +374,16 @@ export default function ActivityPage() {
         )}
       </div>
 
-      {/* Activity List */}
+      {/* Execution List */}
       {loading ? (
         <div className="text-center py-12">
-          <p style={{ color: 'var(--muted)' }}>Loading activity...</p>
+          <p style={{ color: 'var(--muted)' }}>Loading executions...</p>
         </div>
       ) : (
         <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
           {filteredActivities.length === 0 ? (
             <div className="text-center py-12 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <p style={{ color: 'var(--muted)' }}>No activity found</p>
+              <p style={{ color: 'var(--muted)' }}>No executions found</p>
             </div>
           ) : (
             filteredActivities.map((item) => (
@@ -479,13 +392,11 @@ export default function ActivityPage() {
                 className="rounded-lg p-6 hover:shadow-md transition-shadow"
                 style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}
               >
-                {item.type === 'run' ? (
-                  // Render Run Activity
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="flex-shrink-0 mt-1">
-                        {getActivityIcon(item)}
-                      </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="flex-shrink-0 mt-1">
+                      {getActivityIcon(item.status)}
+                    </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
@@ -626,99 +537,46 @@ export default function ActivityPage() {
                           </details>
                         )}
                         {item.artifacts && (
-                          <details className="mt-3">
-                            <summary className="text-sm font-medium cursor-pointer" style={{ color: 'var(--muted)' }}>
-                              Job Output
-                            </summary>
-                            <pre
-                              className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
-                              style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
-                            >
-                              {(() => {
-                                try {
-                                  return JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2);
-                                } catch (e) {
-                                  return item.artifacts;
-                                }
-                              })()}
-                            </pre>
-                          </details>
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>
+                                API Result
+                              </span>
+                              <button
+                                onClick={() => exportAPIResultToExcel(item.artifacts, item.automation?.name || 'automation', item.uniqueId || item.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:opacity-80"
+                                style={{
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                }}
+                                title="Export API result to Excel"
+                              >
+                                <FileSpreadsheet className="h-3.5 w-3.5" />
+                                Export to Excel
+                              </button>
+                            </div>
+                            <details>
+                              <summary className="text-sm font-medium cursor-pointer" style={{ color: 'var(--muted)' }}>
+                                View JSON Output
+                              </summary>
+                              <pre
+                                className="mt-2 p-3 rounded-lg text-xs overflow-x-auto"
+                                style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
+                              >
+                                {(() => {
+                                  try {
+                                    return JSON.stringify(JSON.parse(item.artifacts || '{}'), null, 2);
+                                  } catch (e) {
+                                    return item.artifacts;
+                                  }
+                                })()}
+                              </pre>
+                            </details>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
-                ) : (
-                  // Render General Activity
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="flex-shrink-0 mt-1">
-                        {getActivityIcon(item)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>
-                            {item.entityName}
-                          </h3>
-                          <span
-                            className="px-3 py-1 text-xs font-semibold rounded-full capitalize"
-                            style={{
-                              backgroundColor: item.action === 'login' ? 'rgba(34, 197, 94, 0.1)' :
-                                             item.action === 'logout' ? 'rgba(107, 114, 128, 0.1)' :
-                                             item.action === 'created' ? 'rgba(34, 197, 94, 0.1)' :
-                                             item.action === 'updated' ? 'rgba(59, 130, 246, 0.1)' :
-                                             item.action === 'deleted' ? 'rgba(239, 68, 68, 0.1)' :
-                                             'rgba(76, 18, 161, 0.1)',
-                              color: item.action === 'login' ? 'var(--success)' :
-                                    item.action === 'logout' ? '#6b7280' :
-                                    item.action === 'created' ? 'var(--success)' :
-                                    item.action === 'updated' ? '#3b82f6' :
-                                    item.action === 'deleted' ? '#ef4444' :
-                                    'var(--primary)'
-                            }}
-                          >
-                            {item.action}
-                          </span>
-                        </div>
-                        <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
-                          {item.description}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm flex-wrap" style={{ color: 'var(--muted)' }}>
-                          <span>
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                          <span>
-                            By: {item.performedBy}
-                          </span>
-                          <span className="px-2 py-0.5 text-xs rounded-md" style={{ backgroundColor: 'var(--bg)' }}>
-                            {item.entityType}
-                          </span>
-                          {/* Show department and location for login/logout events */}
-                          {(item.action === 'login' || item.action === 'logout') && item.metadata && (() => {
-                            try {
-                              const metadata = JSON.parse(item.metadata);
-                              return (
-                                <>
-                                  {metadata.department && metadata.department !== 'N/A' && (
-                                    <span className="px-2 py-0.5 text-xs rounded-md" style={{ backgroundColor: 'rgba(76, 18, 161, 0.1)', color: 'var(--primary)' }}>
-                                      {metadata.department}
-                                    </span>
-                                  )}
-                                  {metadata.location && metadata.location !== 'N/A' && (
-                                    <span className="px-2 py-0.5 text-xs rounded-md" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                                      {metadata.location}
-                                    </span>
-                                  )}
-                                </>
-                              );
-                            } catch (e) {
-                              return null;
-                            }
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ))
           )}

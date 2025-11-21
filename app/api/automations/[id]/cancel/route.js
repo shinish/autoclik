@@ -1,10 +1,46 @@
 import { NextResponse } from 'next/server';
-import { getAWXConfig } from '@/lib/awx';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+/**
+ * Get AWX configuration from environment variables or database
+ */
+async function getAwxConfig() {
+  let baseUrl = process.env.AWX_BASE_URL || '';
+  let token = process.env.AWX_TOKEN || '';
+
+  // If environment variables are not set or empty, fetch from database
+  if (!baseUrl || !token) {
+    try {
+      const [urlSetting, tokenSetting] = await Promise.all([
+        prisma.setting.findUnique({ where: { key: 'default_api_endpoint' } }),
+        prisma.setting.findUnique({ where: { key: 'awx_token' } }),
+      ]);
+
+      if (!baseUrl && urlSetting?.value) {
+        baseUrl = urlSetting.value;
+      }
+      if (!token && tokenSetting?.value) {
+        token = tokenSetting.value;
+      }
+    } catch (error) {
+      console.error('Error fetching AWX config from database:', error);
+    }
+  }
+
+  // Fallback to default if still not set
+  if (!baseUrl) {
+    baseUrl = 'http://127.0.0.1:59809';
+  }
+
+  return { baseUrl, token };
+}
 
 export async function POST(request, { params }) {
   try {
     const { awxJobId } = await request.json();
-    const { id } = params;
+    const { id } = await params;
 
     if (!awxJobId) {
       return NextResponse.json(
@@ -13,10 +49,10 @@ export async function POST(request, { params }) {
       );
     }
 
-    const awxConfig = await getAWXConfig();
+    const awxConfig = await getAwxConfig();
 
     // Cancel the job in AWX
-    const cancelRes = await fetch(`${awxConfig.url}/api/v2/jobs/${awxJobId}/cancel/`, {
+    const cancelRes = await fetch(`${awxConfig.baseUrl}/api/v2/jobs/${awxJobId}/cancel/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${awxConfig.token}`,
