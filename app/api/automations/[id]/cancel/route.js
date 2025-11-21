@@ -51,21 +51,47 @@ export async function POST(request, { params }) {
 
     const awxConfig = await getAwxConfig();
 
-    // Cancel the job in AWX
-    const cancelRes = await fetch(`${awxConfig.baseUrl}/api/v2/jobs/${awxJobId}/cancel/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${awxConfig.token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!cancelRes.ok) {
-      const errorText = await cancelRes.text();
-      console.error('AWX cancel error:', errorText);
+    // Check if AWX is configured
+    if (!awxConfig.token) {
+      console.error('AWX is not configured. Please set AWX_TOKEN or configure it in Settings.');
       return NextResponse.json(
-        { error: 'Failed to cancel job in AWX', details: errorText },
-        { status: cancelRes.status }
+        {
+          error: 'AWX is not configured',
+          details: 'Please configure AWX credentials in Settings > AWX Environments or set AWX_TOKEN environment variable'
+        },
+        { status: 503 }
+      );
+    }
+
+    console.log(`Attempting to cancel AWX job ${awxJobId} at ${awxConfig.baseUrl}`);
+
+    // Cancel the job in AWX
+    try {
+      const cancelRes = await fetch(`${awxConfig.baseUrl}/api/v2/jobs/${awxJobId}/cancel/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${awxConfig.token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!cancelRes.ok) {
+        const errorText = await cancelRes.text();
+        console.error('AWX cancel error:', errorText);
+        return NextResponse.json(
+          { error: 'Failed to cancel job in AWX', details: errorText },
+          { status: cancelRes.status }
+        );
+      }
+    } catch (fetchError) {
+      console.error('Failed to connect to AWX:', fetchError.message);
+      return NextResponse.json(
+        {
+          error: 'Failed to connect to AWX',
+          details: `Cannot reach AWX server at ${awxConfig.baseUrl}. Please check if AWX is running and the URL is correct.`,
+          baseUrl: awxConfig.baseUrl
+        },
+        { status: 503 }
       );
     }
 
