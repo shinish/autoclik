@@ -48,6 +48,8 @@ export async function GET(request, { params }) {
         if (response.ok) {
           const jobData = await response.json();
 
+          console.log(`[Execution ${id}] AWX job status: ${jobData.status}, finished: ${jobData.finished}`);
+
           // Determine status based on AWX job status
           let status = execution.status;
           if (jobData.status === 'successful') {
@@ -57,6 +59,8 @@ export async function GET(request, { params }) {
           } else if (jobData.status === 'canceled') {
             status = 'canceled';
           }
+
+          console.log(`[Execution ${id}] Mapped status: ${execution.status} -> ${status}`);
 
           // Get console output if available
           let consoleOutput = execution.consoleOutput;

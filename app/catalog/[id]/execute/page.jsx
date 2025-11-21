@@ -162,6 +162,7 @@ export default function CatalogExecutePage() {
 
         if (res.ok) {
           const data = await res.json();
+          console.log(`[Poll] Execution status: ${data.status}, executing: ${executing}`);
           setExecution(data);
 
           // Update console output and extract HTML if present
@@ -182,6 +183,7 @@ export default function CatalogExecutePage() {
 
           // Stop polling if execution is complete
           if (data.status === 'success' || data.status === 'failed' || data.status === 'canceled') {
+            console.log(`[Poll] Stopping polling - status is ${data.status}`);
             clearInterval(interval);
             pollingIntervalRef.current = null;
             setExecuting(false);
