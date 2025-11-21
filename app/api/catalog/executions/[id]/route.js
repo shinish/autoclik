@@ -29,10 +29,11 @@ export async function GET(request, { params }) {
     // If execution has an AWX job ID and is still running, poll AWX for updates
     if (execution.awxJobId && execution.status === 'running') {
       try {
-        const awxToken = process.env.AWX_TOKEN;
+        // Use the token from the catalog's environment
+        const awxToken = execution.catalog.environment.token;
 
         if (!awxToken) {
-          console.error('AWX_TOKEN not configured');
+          console.error(`[Execution ${id}] AWX environment token not configured`);
           return NextResponse.json(execution);
         }
 
@@ -148,7 +149,8 @@ export async function DELETE(request, { params }) {
     // Cancel AWX job if it exists and is running
     if (execution.awxJobId && execution.status === 'running') {
       try {
-        const awxToken = process.env.AWX_TOKEN;
+        // Use the token from the catalog's environment
+        const awxToken = execution.catalog.environment.token;
 
         if (awxToken) {
           const cancelUrl = `${execution.catalog.environment.baseUrl}/api/v2/jobs/${execution.awxJobId}/cancel/`;
@@ -163,7 +165,7 @@ export async function DELETE(request, { params }) {
             headers,
           });
         } else {
-          console.error('Cannot cancel job: AWX_TOKEN not configured');
+          console.error('Cannot cancel job: AWX environment token not configured');
         }
       } catch (error) {
         console.error('Error canceling AWX job:', error);

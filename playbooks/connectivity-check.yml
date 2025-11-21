@@ -24,7 +24,7 @@
 
     - name: Build results dictionary
       set_fact:
-        connectivity_results: "{{ connectivity_results | combine({item.item: ('Success' if item.status is defined and item.status > 0 else 'Failed')}) }}"
+        connectivity_results: "{{ connectivity_results | combine({item.item: ('Success' if item.status is defined and item.status >= 200 and item.status < 400 else 'Failed')}) }}"
       loop: "{{ http_results.results }}"
       loop_control:
         label: "{{ item.item }}"
