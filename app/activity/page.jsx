@@ -239,7 +239,7 @@ export default function ActivityPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, ID, AWX Job ID, action, user..."
+            placeholder="Search by execution ID (WSRPT00-00001), automation name, AWX Job ID..."
             className="w-full rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{
               border: '1px solid var(--border)',
