@@ -19,6 +19,7 @@ export default function SchedulesPage() {
     frequency: 'Every day at 3:00 AM',
     cron: '0 3 * * *',
     status: 'active',
+    parameters: '{}',
   });
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function SchedulesPage() {
           frequency: 'Every day at 3:00 AM',
           cron: '0 3 * * *',
           status: 'active',
+          parameters: '{}',
         });
         setToast({ message: 'Schedule created successfully!', type: 'success' });
       }
@@ -388,6 +390,29 @@ export default function SchedulesPage() {
                 />
                 <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>Use cron syntax (minute hour day month weekday)</p>
               </div>
+              </div>
+
+              {/* Parameters JSON Section */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Parameters (JSON)
+                </label>
+                <textarea
+                  value={formData.parameters}
+                  onChange={(e) => setFormData({ ...formData, parameters: e.target.value })}
+                  placeholder='{"key": "value"}'
+                  rows={6}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--text)',
+                    focusRing: 'var(--accent)'
+                  }}
+                />
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                  Enter the parameters as a JSON object that will be passed to the automation when it runs
+                </p>
               </div>
 
               {/* Cron Tips Section */}

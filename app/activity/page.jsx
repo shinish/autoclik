@@ -51,12 +51,27 @@ export default function ActivityPage() {
     }
 
     try {
-      const endpoint = `/api/automations/${item.automationId}/cancel`;
+      let endpoint;
+      let method;
+      let body;
+
+      // Determine the correct endpoint based on execution type
+      if (item.type === 'catalog') {
+        // For catalog executions, use DELETE on the execution endpoint
+        endpoint = `/api/catalog/executions/${item.id}`;
+        method = 'DELETE';
+        body = null;
+      } else {
+        // For automation runs, use the automation cancel endpoint
+        endpoint = `/api/automations/${item.automationId}/cancel`;
+        method = 'POST';
+        body = JSON.stringify({ awxJobId: item.awxJobId });
+      }
 
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ awxJobId: item.awxJobId })
+        ...(body && { body })
       });
 
       if (!res.ok) {
