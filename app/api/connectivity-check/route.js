@@ -3,6 +3,9 @@ import prisma from '@/lib/prisma';
 import { launchJobTemplate, getJobStatus } from '@/lib/awx-api';
 import { logInfo, logError } from '@/lib/logger';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Default connectivity check job template ID (from AWX)
 const DEFAULT_CONNECTIVITY_TEMPLATE_ID = '8';
 
