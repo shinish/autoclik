@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Play, ArrowLeft, Terminal, CheckCircle, XCircle, Clock, Loader,
-  AlertCircle, Download, FileJson, FileSpreadsheet, FileCode, Network,
-  ChevronDown, ChevronUp, Settings
+  AlertCircle, Download, FileJson, FileSpreadsheet, FileCode, Network
 } from 'lucide-react';
 import Button from '@/components/Button';
 import ExcelJS from 'exceljs';
@@ -17,8 +16,9 @@ export default function ConnectivityCheckPage() {
   const [executionNodeGroup, setExecutionNodeGroup] = useState('');  // Queue Name / source_system
   const [destinationIPs, setDestinationIPs] = useState('');          // destn_ip separated by ";"
   const [portNumbers, setPortNumbers] = useState('');                 // ports_input separated by ","
-  const [instanceGroupId, setInstanceGroupId] = useState('');        // Optional instance group ID
-  const [showAdvanced, setShowAdvanced] = useState(false);           // Toggle advanced options
+  const [instanceGroupId, setInstanceGroupId] = useState('298');     // Instance group ID with default
+  const [instanceGroups, setInstanceGroups] = useState([]);          // Available instance groups from AWX
+  const [loadingGroups, setLoadingGroups] = useState(true);          // Loading state for instance groups
 
   // Execution state
   const [executing, setExecuting] = useState(false);
@@ -36,6 +36,41 @@ export default function ConnectivityCheckPage() {
         pollingIntervalRef.current = null;
       }
     };
+  }, []);
+
+  // Fetch instance groups from AWX
+  useEffect(() => {
+    const fetchInstanceGroups = async () => {
+      try {
+        setLoadingGroups(true);
+        const res = await fetch('/api/awx/instance-groups');
+        if (res.ok) {
+          const data = await res.json();
+          let groups = data.results || [];
+
+          // Ensure default instance group is always in the list
+          const defaultId = data.defaultId || 298;
+          const defaultExists = groups.some(g => g.id === defaultId);
+          if (!defaultExists) {
+            groups = [{ id: defaultId, name: `Instance Group ${defaultId}`, description: 'Default' }, ...groups];
+          }
+
+          setInstanceGroups(groups);
+          // Set default if available from settings
+          if (data.defaultId) {
+            setInstanceGroupId(String(data.defaultId));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching instance groups:', error);
+        // Keep default value of 298 and add it to the list
+        setInstanceGroups([{ id: 298, name: 'Instance Group 298', description: 'Default' }]);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+
+    fetchInstanceGroups();
   }, []);
 
   // Auto-scroll console to bottom
@@ -630,46 +665,45 @@ export default function ConnectivityCheckPage() {
               </p>
             </div>
 
-            {/* Advanced Options Toggle */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity"
-                style={{ color: 'var(--primary)' }}
-              >
-                <Settings className="h-4 w-4" />
-                Advanced Options
-                {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-            </div>
-
-            {/* Advanced Options */}
-            {showAdvanced && (
-              <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
-                {/* Instance Group ID */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                    Instance Group ID
-                  </label>
-                  <input
-                    type="text"
-                    value={instanceGroupId}
-                    onChange={(e) => setInstanceGroupId(e.target.value)}
-                    placeholder="298 (default)"
-                    className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                    style={{
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--surface)',
-                      color: 'var(--text)',
-                    }}
-                  />
-                  <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                    Optional: AWX Instance Group ID. Leave empty to use default (298) or value from settings.
-                  </p>
+            {/* Instance Group */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                Instance Group <span className="text-red-500">*</span>
+              </label>
+              {loadingGroups ? (
+                <div className="flex items-center gap-2 py-2">
+                  <Loader className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>Loading instance groups...</span>
                 </div>
-              </div>
-            )}
+              ) : (
+                <select
+                  required
+                  value={instanceGroupId}
+                  onChange={(e) => setInstanceGroupId(e.target.value)}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--text)',
+                  }}
+                >
+                  {instanceGroups.length > 0 ? (
+                    instanceGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} (ID: {group.id})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="298">Default Instance Group (ID: 298)</option>
+                    </>
+                  )}
+                </select>
+              )}
+              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                Select the AWX Instance Group to run the connectivity check
+              </p>
+            </div>
 
             <div className="flex gap-3 pt-4">
               <Button
