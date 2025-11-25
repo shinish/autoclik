@@ -17,8 +17,6 @@ export default function ConnectivityCheckPage() {
   const [destinationIPs, setDestinationIPs] = useState('');          // destn_ip separated by ";"
   const [portNumbers, setPortNumbers] = useState('');                 // ports_input separated by ","
   const [instanceGroupId, setInstanceGroupId] = useState('298');     // Instance group ID with default
-  const [instanceGroups, setInstanceGroups] = useState([]);          // Available instance groups from AWX
-  const [loadingGroups, setLoadingGroups] = useState(true);          // Loading state for instance groups
 
   // Execution state
   const [executing, setExecuting] = useState(false);
@@ -36,41 +34,6 @@ export default function ConnectivityCheckPage() {
         pollingIntervalRef.current = null;
       }
     };
-  }, []);
-
-  // Fetch instance groups from AWX
-  useEffect(() => {
-    const fetchInstanceGroups = async () => {
-      try {
-        setLoadingGroups(true);
-        const res = await fetch('/api/awx/instance-groups');
-        if (res.ok) {
-          const data = await res.json();
-          let groups = data.results || [];
-
-          // Ensure default instance group is always in the list
-          const defaultId = data.defaultId || 298;
-          const defaultExists = groups.some(g => g.id === defaultId);
-          if (!defaultExists) {
-            groups = [{ id: defaultId, name: `Instance Group ${defaultId}`, description: 'Default' }, ...groups];
-          }
-
-          setInstanceGroups(groups);
-          // Set default if available from settings
-          if (data.defaultId) {
-            setInstanceGroupId(String(data.defaultId));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching instance groups:', error);
-        // Keep default value of 298 and add it to the list
-        setInstanceGroups([{ id: 298, name: 'Instance Group 298', description: 'Default' }]);
-      } finally {
-        setLoadingGroups(false);
-      }
-    };
-
-    fetchInstanceGroups();
   }, []);
 
   // Auto-scroll console to bottom
@@ -668,40 +631,23 @@ export default function ConnectivityCheckPage() {
             {/* Instance Group */}
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                Instance Group <span className="text-red-500">*</span>
+                Instance Group ID <span className="text-red-500">*</span>
               </label>
-              {loadingGroups ? (
-                <div className="flex items-center gap-2 py-2">
-                  <Loader className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
-                  <span className="text-sm" style={{ color: 'var(--muted)' }}>Loading instance groups...</span>
-                </div>
-              ) : (
-                <select
-                  required
-                  value={instanceGroupId}
-                  onChange={(e) => setInstanceGroupId(e.target.value)}
-                  className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--text)',
-                  }}
-                >
-                  {instanceGroups.length > 0 ? (
-                    instanceGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name} (ID: {group.id})
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="298">Default Instance Group (ID: 298)</option>
-                    </>
-                  )}
-                </select>
-              )}
+              <input
+                type="text"
+                required
+                value={instanceGroupId}
+                onChange={(e) => setInstanceGroupId(e.target.value)}
+                placeholder="e.g., 298"
+                className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--text)',
+                }}
+              />
               <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                Select the AWX Instance Group to run the connectivity check
+                Enter the AWX Instance Group ID to run the connectivity check (default: 298)
               </p>
             </div>
 
