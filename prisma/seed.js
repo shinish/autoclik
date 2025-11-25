@@ -121,6 +121,9 @@ async function main() {
     { key: 'proxy_url', value: '', description: 'Proxy server URL' },
     { key: 'proxy_port', value: '', description: 'Proxy server port' },
     { key: 'first_time_setup', value: 'true', description: 'Flag to indicate if this is the first time setup' },
+    // AWX Connectivity Check settings
+    { key: 'connectivity_check_template_id', value: '1456', description: 'AWX Job Template ID for connectivity checks' },
+    { key: 'default_instance_group_id', value: '', description: 'Default AWX Instance Group ID for jobs' },
   ];
 
   for (const setting of settingsToCreate) {
