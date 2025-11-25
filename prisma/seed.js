@@ -660,6 +660,102 @@ async function main() {
 
   console.log(`Created ${schedules.length} test schedules`);
 
+  // Create default namespace for Infrastructure
+  console.log('Creating default namespaces...');
+  let infrastructureNamespace = await prisma.namespace.findFirst({
+    where: { name: 'infrastructure' }
+  });
+
+  if (!infrastructureNamespace) {
+    infrastructureNamespace = await prisma.namespace.create({
+      data: {
+        name: 'infrastructure',
+        displayName: 'Infrastructure',
+        description: 'Infrastructure automation and management',
+        color: '#8b5cf6',
+        icon: 'server',
+        createdBy: 'system',
+      },
+    });
+    console.log('✓ Created Infrastructure namespace');
+  } else {
+    console.log('✓ Infrastructure namespace already exists');
+  }
+
+  // Create default AWX Environment
+  console.log('Creating default AWX environment...');
+  let defaultAwxEnvironment = await prisma.awxEnvironment.findFirst({
+    where: { name: 'Default AWX' }
+  });
+
+  if (!defaultAwxEnvironment) {
+    defaultAwxEnvironment = await prisma.awxEnvironment.create({
+      data: {
+        name: 'Default AWX',
+        baseUrl: '',
+        token: '',
+        description: 'Default AWX environment - configure in Settings',
+      },
+    });
+    console.log('✓ Created Default AWX environment');
+  } else {
+    console.log('✓ Default AWX environment already exists');
+  }
+
+  // Create Connectivity Check catalog item
+  console.log('Creating Connectivity Check catalog item...');
+  let connectivityCheckCatalog = await prisma.catalog.findFirst({
+    where: { name: 'Connectivity Check' }
+  });
+
+  if (!connectivityCheckCatalog) {
+    // Get the connectivity check template ID from settings
+    const templateIdSetting = await prisma.setting.findUnique({
+      where: { key: 'connectivity_check_template_id' }
+    });
+    const templateId = templateIdSetting?.value || '8';
+
+    connectivityCheckCatalog = await prisma.catalog.create({
+      data: {
+        name: 'Connectivity Check',
+        description: 'Test network connectivity from execution node groups to destination IPs and ports.',
+        namespaceId: infrastructureNamespace.id,
+        environmentId: defaultAwxEnvironment.id,
+        templateId: templateId,
+        formSchema: JSON.stringify([
+          {
+            type: 'text',
+            label: 'Execution Node Group (Queue Name)',
+            key: 'source_system',
+            required: true,
+            placeholder: 'e.g., VRT-PDC, APP-SERVER-01',
+            helpText: 'The execution node group or queue name to run the connectivity check from'
+          },
+          {
+            type: 'textarea',
+            label: 'Destination IPs',
+            key: 'destn_ip',
+            required: true,
+            placeholder: '192.168.1.1; 10.0.0.1; google.com',
+            helpText: 'Enter IP addresses or hostnames separated by semicolon (;)'
+          },
+          {
+            type: 'text',
+            label: 'Port Numbers',
+            key: 'ports_input',
+            required: true,
+            placeholder: '22, 80, 443, 3306',
+            helpText: 'Enter port numbers separated by comma (,)'
+          }
+        ]),
+        createdBy: 'system',
+      },
+    });
+    console.log('✓ Created Connectivity Check catalog item');
+  } else {
+    console.log('✓ Connectivity Check catalog item already exists');
+  }
+
   // Create additional system logs
   console.log('Creating additional system logs...');
   const systemLogs = [];
