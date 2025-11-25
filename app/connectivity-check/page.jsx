@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Play, ArrowLeft, Terminal, CheckCircle, XCircle, Clock, Loader,
-  AlertCircle, Download, FileJson, FileSpreadsheet, FileCode, Network
+  AlertCircle, Download, FileJson, FileSpreadsheet, FileCode, Network,
+  ChevronDown, ChevronUp, Settings
 } from 'lucide-react';
 import Button from '@/components/Button';
 import ExcelJS from 'exceljs';
@@ -16,6 +17,8 @@ export default function ConnectivityCheckPage() {
   const [executionNodeGroup, setExecutionNodeGroup] = useState('');  // Queue Name / source_system
   const [destinationIPs, setDestinationIPs] = useState('');          // destn_ip separated by ";"
   const [portNumbers, setPortNumbers] = useState('');                 // ports_input separated by ","
+  const [instanceGroupId, setInstanceGroupId] = useState('');        // Optional instance group ID
+  const [showAdvanced, setShowAdvanced] = useState(false);           // Toggle advanced options
 
   // Execution state
   const [executing, setExecuting] = useState(false);
@@ -72,7 +75,13 @@ export default function ConnectivityCheckPage() {
 
       setConsoleOutput(prev => prev + `\nExecution Node Group (Queue): ${executionNodeGroup}\n`);
       setConsoleOutput(prev => prev + `Destination IPs: ${ips.join('; ')}\n`);
-      setConsoleOutput(prev => prev + `Ports: ${ports.join(', ')}\n\n`);
+      setConsoleOutput(prev => prev + `Ports: ${ports.join(', ')}\n`);
+      if (instanceGroupId) {
+        setConsoleOutput(prev => prev + `Instance Group ID: ${instanceGroupId}\n`);
+      } else {
+        setConsoleOutput(prev => prev + `Instance Group ID: 298 (default)\n`);
+      }
+      setConsoleOutput(prev => prev + '\n');
 
       const res = await fetch('/api/connectivity-check', {
         method: 'POST',
@@ -81,6 +90,7 @@ export default function ConnectivityCheckPage() {
           executionNodeGroup,  // Maps to source_system in AWX
           destinationIPs: ips, // Maps to destn_ip (joined by ";")
           ports,               // Maps to ports_input (joined by ",")
+          instanceGroupId: instanceGroupId || undefined,  // Optional instance group override
           executedBy: currentUser.email || 'system',
         }),
       });
@@ -619,6 +629,47 @@ export default function ConnectivityCheckPage() {
                 Enter port numbers separated by comma (,)
               </p>
             </div>
+
+            {/* Advanced Options Toggle */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity"
+                style={{ color: 'var(--primary)' }}
+              >
+                <Settings className="h-4 w-4" />
+                Advanced Options
+                {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+            </div>
+
+            {/* Advanced Options */}
+            {showAdvanced && (
+              <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
+                {/* Instance Group ID */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                    Instance Group ID
+                  </label>
+                  <input
+                    type="text"
+                    value={instanceGroupId}
+                    onChange={(e) => setInstanceGroupId(e.target.value)}
+                    placeholder="298 (default)"
+                    className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    style={{
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                  <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                    Optional: AWX Instance Group ID. Leave empty to use default (298) or value from settings.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button

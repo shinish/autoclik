@@ -6,9 +6,6 @@ import { logInfo, logError } from '@/lib/logger';
 // Default connectivity check job template ID (from AWX)
 const DEFAULT_CONNECTIVITY_TEMPLATE_ID = '8';
 
-// Hardcoded instance group ID for connectivity checks
-const HARDCODED_INSTANCE_GROUP_ID = 3;
-
 // POST /api/connectivity-check - Run connectivity check
 export async function POST(request) {
   try {
@@ -17,6 +14,7 @@ export async function POST(request) {
       executionNodeGroup,   // Execution Node Group / Queue Name (maps to source_system in AWX)
       destinationIPs,       // Array of destination IPs (joined by ";" for AWX)
       ports,                // Array of ports (joined by "," for AWX)
+      instanceGroupId,      // Optional: Instance Group ID (overrides default from settings)
       executedBy
     } = body;
 
@@ -81,6 +79,19 @@ export async function POST(request) {
 
     const jobTemplateId = jobTemplateIdSetting?.value || DEFAULT_CONNECTIVITY_TEMPLATE_ID;
 
+    // Get instance group ID from settings or use provided value
+    const instanceGroupSetting = await prisma.setting.findUnique({
+      where: { key: 'default_instance_group_id' }
+    });
+
+    // Priority: request body > settings > default (298)
+    let finalInstanceGroupId = 298; // Default value
+    if (instanceGroupId) {
+      finalInstanceGroupId = parseInt(instanceGroupId, 10);
+    } else if (instanceGroupSetting?.value) {
+      finalInstanceGroupId = parseInt(instanceGroupSetting.value, 10);
+    }
+
     // Prepare the AWX request body with proper format
     // Based on the user's PowerShell test:
     // {
@@ -92,7 +103,7 @@ export async function POST(request) {
     //   }
     // }
     const awxBody = {
-      instance_groups: [HARDCODED_INSTANCE_GROUP_ID],  // Hardcoded instance group
+      instance_groups: [finalInstanceGroupId],
       extra_vars: {
         source_system: Array.isArray(executionNodeGroup) ? executionNodeGroup : [executionNodeGroup],
         destn_ip: destinationIPs.join(';'),  // Multiple IPs separated by semicolon

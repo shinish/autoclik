@@ -123,7 +123,7 @@ async function main() {
     { key: 'first_time_setup', value: 'true', description: 'Flag to indicate if this is the first time setup' },
     // AWX Connectivity Check settings
     { key: 'connectivity_check_template_id', value: '1456', description: 'AWX Job Template ID for connectivity checks' },
-    { key: 'default_instance_group_id', value: '', description: 'Default AWX Instance Group ID for jobs' },
+    { key: 'default_instance_group_id', value: '298', description: 'Default AWX Instance Group ID for connectivity checks (leave empty to use default 298)' },
   ];
 
   for (const setting of settingsToCreate) {
@@ -746,6 +746,15 @@ async function main() {
             required: true,
             placeholder: '22, 80, 443, 3306',
             helpText: 'Enter port numbers separated by comma (,)'
+          },
+          {
+            type: 'text',
+            label: 'Instance Group ID',
+            key: 'instance_group_id',
+            required: false,
+            placeholder: '298',
+            helpText: 'Optional: AWX Instance Group ID (uses default 298 if empty)',
+            advanced: true
           }
         ]),
         createdBy: 'system',
