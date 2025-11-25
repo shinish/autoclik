@@ -133,317 +133,168 @@ async function main() {
     }
   }
 
-  // Create 5 test groups
+  // Create 5 test groups (skip if they already exist)
   console.log('Creating test groups...');
   const groups = [];
 
-  groups.push(await prisma.group.create({
-    data: {
-      name: 'IT Operations',
-      description: 'IT operations team responsible for infrastructure and deployments',
-      isPredefined: false,
-    },
-  }));
+  const groupsData = [
+    { name: 'IT Operations', description: 'IT operations team responsible for infrastructure and deployments', isPredefined: false },
+    { name: 'Database Admins', description: 'Database administrators managing SQL and NoSQL databases', isPredefined: false },
+    { name: 'Security Team', description: 'Security team managing access control and compliance', isPredefined: false },
+    { name: 'Network Engineers', description: 'Network engineering team managing network infrastructure', isPredefined: false },
+    { name: 'DevOps Team', description: 'DevOps team managing CI/CD pipelines and automation', isPredefined: false },
+  ];
 
-  groups.push(await prisma.group.create({
-    data: {
-      name: 'Database Admins',
-      description: 'Database administrators managing SQL and NoSQL databases',
-      isPredefined: false,
-    },
-  }));
+  for (const groupData of groupsData) {
+    let group = await prisma.group.findFirst({ where: { name: groupData.name } });
+    if (!group) {
+      group = await prisma.group.create({ data: groupData });
+      console.log(`  ✓ Created group: ${groupData.name}`);
+    } else {
+      console.log(`  ✓ Group already exists: ${groupData.name}`);
+    }
+    groups.push(group);
+  }
 
-  groups.push(await prisma.group.create({
-    data: {
-      name: 'Security Team',
-      description: 'Security team managing access control and compliance',
-      isPredefined: false,
-    },
-  }));
+  console.log(`Processed ${groups.length} test groups`);
 
-  groups.push(await prisma.group.create({
-    data: {
-      name: 'Network Engineers',
-      description: 'Network engineering team managing network infrastructure',
-      isPredefined: false,
-    },
-  }));
-
-  groups.push(await prisma.group.create({
-    data: {
-      name: 'DevOps Team',
-      description: 'DevOps team managing CI/CD pipelines and automation',
-      isPredefined: false,
-    },
-  }));
-
-  console.log(`Created ${groups.length} test groups`);
-
-  // Create 5 test users
+  // Create 5 test users (skip if they already exist)
   console.log('Creating test users...');
   const testUsers = [];
   const testPassword = await bcrypt.hash('password123', 10);
 
-  testUsers.push(await prisma.user.create({
-    data: {
-      firstName: 'John',
-      lastName: 'Doe',
-      name: 'John Doe',
-      samAccountName: 'johndoe',
-      email: 'john.doe@company.com',
-      password: testPassword,
-      role: 'user',
-      enabled: true,
-      locked: false,
-      department: 'IT Operations',
-      location: 'New York',
-    },
-  }));
+  const usersData = [
+    { firstName: 'John', lastName: 'Doe', samAccountName: 'johndoe', email: 'john.doe@company.com', department: 'IT Operations', location: 'New York' },
+    { firstName: 'Sarah', lastName: 'Smith', samAccountName: 'sarahsmith', email: 'sarah.smith@company.com', department: 'Database Administration', location: 'San Francisco' },
+    { firstName: 'Michael', lastName: 'Johnson', samAccountName: 'michaelj', email: 'michael.johnson@company.com', department: 'Security', location: 'Austin' },
+    { firstName: 'Emily', lastName: 'Davis', samAccountName: 'emilyd', email: 'emily.davis@company.com', department: 'Network Engineering', location: 'Seattle' },
+    { firstName: 'David', lastName: 'Wilson', samAccountName: 'davidw', email: 'david.wilson@company.com', department: 'DevOps', location: 'Boston' },
+  ];
 
-  testUsers.push(await prisma.user.create({
-    data: {
-      firstName: 'Sarah',
-      lastName: 'Smith',
-      name: 'Sarah Smith',
-      samAccountName: 'sarahsmith',
-      email: 'sarah.smith@company.com',
-      password: testPassword,
-      role: 'user',
-      enabled: true,
-      locked: false,
-      department: 'Database Administration',
-      location: 'San Francisco',
-    },
-  }));
+  for (const userData of usersData) {
+    let user = await prisma.user.findFirst({ where: { email: userData.email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          name: `${userData.firstName} ${userData.lastName}`,
+          samAccountName: userData.samAccountName,
+          email: userData.email,
+          password: testPassword,
+          role: 'user',
+          enabled: true,
+          locked: false,
+          department: userData.department,
+          location: userData.location,
+        },
+      });
+      console.log(`  ✓ Created user: ${userData.email}`);
+    } else {
+      console.log(`  ✓ User already exists: ${userData.email}`);
+    }
+    testUsers.push(user);
+  }
 
-  testUsers.push(await prisma.user.create({
-    data: {
-      firstName: 'Michael',
-      lastName: 'Johnson',
-      name: 'Michael Johnson',
-      samAccountName: 'michaelj',
-      email: 'michael.johnson@company.com',
-      password: testPassword,
-      role: 'user',
-      enabled: true,
-      locked: false,
-      department: 'Security',
-      location: 'Austin',
-    },
-  }));
-
-  testUsers.push(await prisma.user.create({
-    data: {
-      firstName: 'Emily',
-      lastName: 'Davis',
-      name: 'Emily Davis',
-      samAccountName: 'emilyd',
-      email: 'emily.davis@company.com',
-      password: testPassword,
-      role: 'user',
-      enabled: true,
-      locked: false,
-      department: 'Network Engineering',
-      location: 'Seattle',
-    },
-  }));
-
-  testUsers.push(await prisma.user.create({
-    data: {
-      firstName: 'David',
-      lastName: 'Wilson',
-      name: 'David Wilson',
-      samAccountName: 'davidw',
-      email: 'david.wilson@company.com',
-      password: testPassword,
-      role: 'user',
-      enabled: true,
-      locked: false,
-      department: 'DevOps',
-      location: 'Boston',
-    },
-  }));
-
-  console.log(`Created ${testUsers.length} test users`);
+  console.log(`Processed ${testUsers.length} test users`);
   console.log('Test user credentials: username@company.com / password123');
 
-  // Assign users to groups
+  // Assign users to groups (skip if already assigned)
   console.log('Assigning users to groups...');
-  await prisma.groupMember.create({
-    data: { userId: testUsers[0].id, groupId: groups[0].id },
-  });
-  await prisma.groupMember.create({
-    data: { userId: testUsers[1].id, groupId: groups[1].id },
-  });
-  await prisma.groupMember.create({
-    data: { userId: testUsers[2].id, groupId: groups[2].id },
-  });
-  await prisma.groupMember.create({
-    data: { userId: testUsers[3].id, groupId: groups[3].id },
-  });
-  await prisma.groupMember.create({
-    data: { userId: testUsers[4].id, groupId: groups[4].id },
-  });
+  for (let i = 0; i < testUsers.length && i < groups.length; i++) {
+    const existing = await prisma.groupMember.findFirst({
+      where: { userId: testUsers[i].id, groupId: groups[i].id }
+    });
+    if (!existing) {
+      await prisma.groupMember.create({
+        data: { userId: testUsers[i].id, groupId: groups[i].id },
+      });
+    }
+  }
 
-  // Create 5 test credentials
+  // Create 5 test credentials (skip if they already exist)
   console.log('Creating test credentials...');
   const credentials = [];
 
-  credentials.push(await prisma.credential.create({
-    data: {
-      name: 'Production SSH Key',
-      description: 'SSH key for production servers',
-      credentialType: 'machine',
-      username: 'ansible',
-      password: await bcrypt.hash('prod-password-123', 10),
-      createdBy: 'admin',
-    },
-  }));
+  const credentialsData = [
+    { name: 'Production SSH Key', description: 'SSH key for production servers', credentialType: 'machine', username: 'ansible' },
+    { name: 'AWS Cloud Credentials', description: 'AWS access credentials for cloud automation', credentialType: 'cloud', username: 'AKIAIOSFODNN7EXAMPLE' },
+    { name: 'Database Admin', description: 'PostgreSQL database administrator credentials', credentialType: 'machine', username: 'dbadmin' },
+    { name: 'Network Device SSH', description: 'SSH credentials for network switches and routers', credentialType: 'network', username: 'netadmin' },
+    { name: 'Ansible Vault Password', description: 'Vault password for encrypted Ansible variables', credentialType: 'vault', username: null, isVault: true },
+  ];
 
-  credentials.push(await prisma.credential.create({
-    data: {
-      name: 'AWS Cloud Credentials',
-      description: 'AWS access credentials for cloud automation',
-      credentialType: 'cloud',
-      username: 'AKIAIOSFODNN7EXAMPLE',
-      password: await bcrypt.hash('wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', 10),
-      createdBy: 'admin',
-    },
-  }));
+  for (const credData of credentialsData) {
+    let cred = await prisma.credential.findFirst({ where: { name: credData.name } });
+    if (!cred) {
+      const data = {
+        name: credData.name,
+        description: credData.description,
+        credentialType: credData.credentialType,
+        createdBy: 'admin',
+      };
+      if (credData.isVault) {
+        data.vaultPassword = await bcrypt.hash('vault-secret-key-999', 10);
+      } else {
+        data.username = credData.username;
+        data.password = await bcrypt.hash('test-password-123', 10);
+      }
+      cred = await prisma.credential.create({ data });
+      console.log(`  ✓ Created credential: ${credData.name}`);
+    } else {
+      console.log(`  ✓ Credential already exists: ${credData.name}`);
+    }
+    credentials.push(cred);
+  }
 
-  credentials.push(await prisma.credential.create({
-    data: {
-      name: 'Database Admin',
-      description: 'PostgreSQL database administrator credentials',
-      credentialType: 'machine',
-      username: 'dbadmin',
-      password: await bcrypt.hash('db-secure-pass-456', 10),
-      createdBy: 'admin',
-    },
-  }));
+  console.log(`Processed ${credentials.length} test credentials`);
 
-  credentials.push(await prisma.credential.create({
-    data: {
-      name: 'Network Device SSH',
-      description: 'SSH credentials for network switches and routers',
-      credentialType: 'network',
-      username: 'netadmin',
-      password: await bcrypt.hash('network-pass-789', 10),
-      createdBy: 'admin',
-    },
-  }));
-
-  credentials.push(await prisma.credential.create({
-    data: {
-      name: 'Ansible Vault Password',
-      description: 'Vault password for encrypted Ansible variables',
-      credentialType: 'vault',
-      vaultPassword: await bcrypt.hash('vault-secret-key-999', 10),
-      createdBy: 'admin',
-    },
-  }));
-
-  console.log(`Created ${credentials.length} test credentials`);
-
-  // Create test activity logs
+  // Create test activity logs (skip if seed has run before - check activity count)
   console.log('Creating test activity logs...');
   const activities = [];
+  const existingActivityCount = await prisma.activity.count();
 
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'created',
-      entityType: 'user',
-      entityId: testUsers[0].id,
-      entityName: testUsers[0].name,
-      description: 'User account created',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ department: 'IT Operations', location: 'New York' }),
-    },
-  }));
+  if (existingActivityCount < 5) {
+    // Only create sample activities if very few exist
+    activities.push(await prisma.activity.create({
+      data: {
+        action: 'created',
+        entityType: 'user',
+        entityId: testUsers[0].id,
+        entityName: testUsers[0].name,
+        description: 'User account created',
+        performedBy: 'admin',
+        metadata: JSON.stringify({ department: 'IT Operations', location: 'New York' }),
+      },
+    }));
 
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'created',
-      entityType: 'group',
-      entityId: groups[0].id,
-      entityName: groups[0].name,
-      description: 'Group created for IT Operations team',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ memberCount: 1 }),
-    },
-  }));
+    activities.push(await prisma.activity.create({
+      data: {
+        action: 'created',
+        entityType: 'group',
+        entityId: groups[0].id,
+        entityName: groups[0].name,
+        description: 'Group created for IT Operations team',
+        performedBy: 'admin',
+        metadata: JSON.stringify({ memberCount: 1 }),
+      },
+    }));
 
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'created',
-      entityType: 'credential',
-      entityId: credentials[0].id,
-      entityName: credentials[0].name,
-      description: 'SSH credential created for production servers',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ credentialType: 'machine' }),
-    },
-  }));
-
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'updated',
-      entityType: 'user',
-      entityId: testUsers[1].id,
-      entityName: testUsers[1].name,
-      description: 'User profile updated',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ changes: ['department', 'location'] }),
-    },
-  }));
-
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'executed',
-      entityType: 'automation',
-      entityId: 'auto-test-001',
-      entityName: 'Server Health Check',
-      description: 'Automation executed successfully',
-      performedBy: testUsers[0].email,
-      metadata: JSON.stringify({ status: 'success', duration: '45s', servers: 12 }),
-    },
-  }));
-
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'executed',
-      entityType: 'automation',
-      entityId: 'auto-test-002',
-      entityName: 'Database Backup',
-      description: 'Automation executed with warnings',
-      performedBy: testUsers[1].email,
-      metadata: JSON.stringify({ status: 'success', duration: '2m 15s', warnings: ['Slow response from replica'] }),
-    },
-  }));
-
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'created',
-      entityType: 'group',
-      entityId: groups[2].id,
-      entityName: groups[2].name,
-      description: 'Security team group created',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ memberCount: 1, permissions: ['read', 'write', 'execute'] }),
-    },
-  }));
-
-  activities.push(await prisma.activity.create({
-    data: {
-      action: 'deleted',
-      entityType: 'credential',
-      entityId: 'cred-old-001',
-      entityName: 'Old SSH Key',
-      description: 'Deprecated SSH credential removed',
-      performedBy: 'admin',
-      metadata: JSON.stringify({ reason: 'Key rotation', replaced_by: credentials[0].id }),
-    },
-  }));
+    activities.push(await prisma.activity.create({
+      data: {
+        action: 'created',
+        entityType: 'credential',
+        entityId: credentials[0].id,
+        entityName: credentials[0].name,
+        description: 'SSH credential created for production servers',
+        performedBy: 'admin',
+        metadata: JSON.stringify({ credentialType: 'machine' }),
+      },
+    }));
+    console.log(`  ✓ Created ${activities.length} test activity logs`);
+  } else {
+    console.log(`  ✓ Skipping activity logs (${existingActivityCount} already exist)`);
+  }
 
   console.log(`Created ${activities.length} test activity logs`);
 
@@ -702,19 +553,56 @@ async function main() {
     console.log('✓ Default AWX environment already exists');
   }
 
-  // Create Connectivity Check catalog item
-  console.log('Creating Connectivity Check catalog item...');
+  // Create or Update Connectivity Check catalog item
+  console.log('Creating/Updating Connectivity Check catalog item...');
+
+  // Get the connectivity check template ID from settings
+  const templateIdSetting = await prisma.setting.findUnique({
+    where: { key: 'connectivity_check_template_id' }
+  });
+  const templateId = templateIdSetting?.value || '1456';
+
+  const connectivityCheckFormSchema = JSON.stringify([
+    {
+      type: 'text',
+      label: 'Execution Node Group (Queue Name)',
+      key: 'source_system',
+      required: true,
+      placeholder: 'e.g., VRT-PDC, APP-SERVER-01',
+      helpText: 'The execution node group or queue name to run the connectivity check from'
+    },
+    {
+      type: 'textarea',
+      label: 'Destination IPs',
+      key: 'destn_ip',
+      required: true,
+      placeholder: '192.168.1.1; 10.0.0.1; google.com',
+      helpText: 'Enter IP addresses or hostnames separated by semicolon (;)'
+    },
+    {
+      type: 'text',
+      label: 'Port Numbers',
+      key: 'ports_input',
+      required: true,
+      placeholder: '22, 80, 443, 3306',
+      helpText: 'Enter port numbers separated by comma (,)'
+    },
+    {
+      type: 'text',
+      label: 'Instance Group ID',
+      key: 'instance_group_id',
+      required: false,
+      placeholder: '298',
+      defaultValue: '298',
+      helpText: 'AWX Instance Group ID (default: 298)'
+    }
+  ]);
+
   let connectivityCheckCatalog = await prisma.catalog.findFirst({
     where: { name: 'Connectivity Check' }
   });
 
   if (!connectivityCheckCatalog) {
-    // Get the connectivity check template ID from settings
-    const templateIdSetting = await prisma.setting.findUnique({
-      where: { key: 'connectivity_check_template_id' }
-    });
-    const templateId = templateIdSetting?.value || '8';
-
     connectivityCheckCatalog = await prisma.catalog.create({
       data: {
         name: 'Connectivity Check',
@@ -722,47 +610,23 @@ async function main() {
         namespaceId: infrastructureNamespace.id,
         environmentId: defaultAwxEnvironment.id,
         templateId: templateId,
-        formSchema: JSON.stringify([
-          {
-            type: 'text',
-            label: 'Execution Node Group (Queue Name)',
-            key: 'source_system',
-            required: true,
-            placeholder: 'e.g., VRT-PDC, APP-SERVER-01',
-            helpText: 'The execution node group or queue name to run the connectivity check from'
-          },
-          {
-            type: 'textarea',
-            label: 'Destination IPs',
-            key: 'destn_ip',
-            required: true,
-            placeholder: '192.168.1.1; 10.0.0.1; google.com',
-            helpText: 'Enter IP addresses or hostnames separated by semicolon (;)'
-          },
-          {
-            type: 'text',
-            label: 'Port Numbers',
-            key: 'ports_input',
-            required: true,
-            placeholder: '22, 80, 443, 3306',
-            helpText: 'Enter port numbers separated by comma (,)'
-          },
-          {
-            type: 'text',
-            label: 'Instance Group ID',
-            key: 'instance_group_id',
-            required: false,
-            placeholder: '298',
-            helpText: 'Optional: AWX Instance Group ID (uses default 298 if empty)',
-            advanced: true
-          }
-        ]),
+        formSchema: connectivityCheckFormSchema,
         createdBy: 'system',
       },
     });
     console.log('✓ Created Connectivity Check catalog item');
   } else {
-    console.log('✓ Connectivity Check catalog item already exists');
+    // Update existing catalog item with latest form schema
+    await prisma.catalog.update({
+      where: { id: connectivityCheckCatalog.id },
+      data: {
+        formSchema: connectivityCheckFormSchema,
+        templateId: templateId,
+        namespaceId: infrastructureNamespace.id,
+        environmentId: defaultAwxEnvironment.id,
+      }
+    });
+    console.log('✓ Updated Connectivity Check catalog item');
   }
 
   // Create additional system logs
