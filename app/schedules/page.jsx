@@ -356,19 +356,73 @@ export default function SchedulesPage() {
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Frequency
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.frequency}
-                  onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-                  placeholder="Every day at 3:00 AM"
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    const cronMap = {
+                      'Every 5 minutes': '*/5 * * * *',
+                      'Every 15 minutes': '*/15 * * * *',
+                      'Every 30 minutes': '*/30 * * * *',
+                      'Every hour': '0 * * * *',
+                      'Every 2 hours': '0 */2 * * *',
+                      'Every 6 hours': '0 */6 * * *',
+                      'Every 12 hours': '0 */12 * * *',
+                      'Every day at midnight': '0 0 * * *',
+                      'Every day at 3:00 AM': '0 3 * * *',
+                      'Every day at 6:00 AM': '0 6 * * *',
+                      'Every day at 9:00 AM': '0 9 * * *',
+                      'Every day at noon': '0 12 * * *',
+                      'Every day at 6:00 PM': '0 18 * * *',
+                      'Weekdays at 9:00 AM': '0 9 * * 1-5',
+                      'Weekdays at 5:00 PM': '0 17 * * 1-5',
+                      'Every Monday at 9:00 AM': '0 9 * * 1',
+                      'Every Sunday at midnight': '0 0 * * 0',
+                      'First day of month at midnight': '0 0 1 * *',
+                      'First day of month at 9:00 AM': '0 9 1 * *',
+                      'Custom': formData.cron
+                    };
+                    setFormData({
+                      ...formData,
+                      frequency: selected,
+                      cron: cronMap[selected] || formData.cron
+                    });
+                  }}
                   className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{
                     border: '1px solid var(--border)',
                     backgroundColor: 'var(--bg)',
                     color: 'var(--text)',
-                    focusRing: 'var(--accent)'
+                    focusRing: 'var(--accent)',
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1.5em 1.5em',
+                    paddingRight: '2.5rem',
+                    appearance: 'none'
                   }}
-                />
+                >
+                  <option value="Every 5 minutes">Every 5 minutes</option>
+                  <option value="Every 15 minutes">Every 15 minutes</option>
+                  <option value="Every 30 minutes">Every 30 minutes</option>
+                  <option value="Every hour">Every hour</option>
+                  <option value="Every 2 hours">Every 2 hours</option>
+                  <option value="Every 6 hours">Every 6 hours</option>
+                  <option value="Every 12 hours">Every 12 hours</option>
+                  <option value="Every day at midnight">Every day at midnight</option>
+                  <option value="Every day at 3:00 AM">Every day at 3:00 AM</option>
+                  <option value="Every day at 6:00 AM">Every day at 6:00 AM</option>
+                  <option value="Every day at 9:00 AM">Every day at 9:00 AM</option>
+                  <option value="Every day at noon">Every day at noon</option>
+                  <option value="Every day at 6:00 PM">Every day at 6:00 PM</option>
+                  <option value="Weekdays at 9:00 AM">Weekdays at 9:00 AM</option>
+                  <option value="Weekdays at 5:00 PM">Weekdays at 5:00 PM</option>
+                  <option value="Every Monday at 9:00 AM">Every Monday at 9:00 AM</option>
+                  <option value="Every Sunday at midnight">Every Sunday at midnight</option>
+                  <option value="First day of month at midnight">First day of month at midnight</option>
+                  <option value="First day of month at 9:00 AM">First day of month at 9:00 AM</option>
+                  <option value="Custom">Custom (edit cron below)</option>
+                </select>
               </div>
 
               <div>
@@ -378,7 +432,7 @@ export default function SchedulesPage() {
                 <input
                   type="text"
                   value={formData.cron}
-                  onChange={(e) => setFormData({ ...formData, cron: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, cron: e.target.value, frequency: 'Custom' })}
                   placeholder="0 3 * * *"
                   className="w-full rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{
@@ -388,7 +442,11 @@ export default function SchedulesPage() {
                     focusRing: 'var(--accent)'
                   }}
                 />
-                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>Use cron syntax (minute hour day month weekday)</p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                  {formData.frequency === 'Custom'
+                    ? 'Use cron syntax (minute hour day month weekday)'
+                    : `Auto-filled from frequency: ${formData.frequency}`}
+                </p>
               </div>
               </div>
 

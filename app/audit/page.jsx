@@ -1,88 +1,51 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Calendar, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, TrendingDown, Download, ChevronDown, ChevronUp, Activity, FileText, FileSpreadsheet, Search, Filter, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Calendar, Download, Filter, TrendingUp, Activity, Eye,
+  FileSpreadsheet, FileText, Clock, CheckCircle, XCircle,
+  AlertCircle, BarChart3, PieChart, LineChart, Maximize2,
+  Users, Zap, Server, PlayCircle, StopCircle, AlertTriangle
+} from 'lucide-react';
+import {
+  LineChart as RechartsLine, Line, BarChart as RechartsBar, Bar,
+  PieChart as RechartsPie, Pie, AreaChart, Area,
+  ScatterChart, Scatter, Cell, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
-export default function AuditPage() {
-  const [timeRange, setTimeRange] = useState('30days'); // 30days, daily, weekly, monthly, custom
+export default function AuditReportsPage() {
+  const [dateRange, setDateRange] = useState('30days');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [stats, setStats] = useState({
-    total: 0,
-    success: 0,
-    failed: 0,
-    running: 0,
-    pending: 0,
-  });
-  const [chartData, setChartData] = useState([]);
+  const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [visibleStatuses, setVisibleStatuses] = useState({
-    success: true,
-    failed: true,
-    running: true,
-    pending: true,
-  });
-  const [topAutomations, setTopAutomations] = useState([]);
-  const [recentRuns, setRecentRuns] = useState([]);
-  const [expandedView, setExpandedView] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const exportMenuRef = useRef(null);
-  const [statusDateFilter, setStatusDateFilter] = useState('all'); // all, today, 7days, 30days, 90days
-  const [statusNamespaceFilter, setStatusNamespaceFilter] = useState('all');
-  const [executionDateFilter, setExecutionDateFilter] = useState('90days');
-  const [executionNamespaceFilter, setExecutionNamespaceFilter] = useState('all');
   const [namespaces, setNamespaces] = useState([]);
-  const [allRuns, setAllRuns] = useState([]); // Store all runs for filtering
-  const [automations, setAutomations] = useState([]); // Store automations for namespace mapping
-
-  // Detailed view with pagination and search
+  const [selectedNamespace, setSelectedNamespace] = useState('all');
+  const [selectedExecution, setSelectedExecution] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'details', 'charts'
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    status: 'all',
-    namespace: 'all',
-    dateFrom: '',
-    dateTo: '',
-    executedBy: '',
-    automationName: ''
-  });
+  const [itemsPerPage] = useState(20);
 
-  const toggleStatus = (status) => {
-    setVisibleStatuses(prev => ({
-      ...prev,
-      [status]: !prev[status]
-    }));
+  const chartsRef = useRef(null);
+
+  const COLORS = {
+    success: '#22c55e',    // Brighter green for better visibility
+    failed: '#f87171',     // Softer red, easier on the eyes
+    running: '#60a5fa',    // Lighter blue for better contrast
+    pending: '#fbbf24',    // Brighter amber/yellow for visibility
+    canceled: '#9ca3af'    // Lighter gray for better readability
   };
 
   useEffect(() => {
-    fetchAuditData();
+    fetchReportData();
     fetchNamespaces();
-  }, [timeRange, customStartDate, customEndDate]);
-
-  // Auto-update every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchAuditData();
-    }, 3000); // 3 seconds
-
-    return () => clearInterval(interval);
-  }, [timeRange, customStartDate, customEndDate]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
-        setShowExportMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [dateRange, customStartDate, customEndDate, selectedNamespace]);
 
   const fetchNamespaces = async () => {
     try {
@@ -94,1707 +57,1406 @@ export default function AuditPage() {
     }
   };
 
-  const fetchAuditData = async () => {
+  const fetchReportData = async () => {
     try {
-      // Build API URL with custom date params if needed
-      // Add timestamp to prevent caching and ensure live data
-      const timestamp = new Date().getTime();
-      let auditUrl = `/api/audit?range=${timeRange}&_t=${timestamp}`;
-      if (timeRange === 'custom' && customStartDate && customEndDate) {
-        auditUrl += `&startDate=${customStartDate}&endDate=${customEndDate}`;
-      }
+      setLoading(true);
+      const res = await fetch('/api/runs');
+      const runs = await res.json();
 
-      const [auditRes, automationsRes, runsRes, allRunsRes] = await Promise.all([
-        fetch(auditUrl, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        }),
-        fetch(`/api/automations?_t=${timestamp}`, {
-          cache: 'no-store'
-        }),
-        fetch(`/api/runs?limit=10&_t=${timestamp}`, {
-          cache: 'no-store'
-        }),
-        fetch(`/api/runs?limit=10000&_t=${timestamp}`, {
-          cache: 'no-store'
-        })
-      ]);
-
-      const auditData = await auditRes.json();
-      const automationsData = await automationsRes.json();
-      const runsData = await runsRes.json();
-      const allRunsData = await allRunsRes.json();
-
-      setStats(auditData.stats);
-      setChartData(auditData.chartData);
-      setAutomations(automationsData);
-      setAllRuns(Array.isArray(allRunsData) ? allRunsData : []);
-
-      // Calculate top automations by execution count
-      const sorted = [...automationsData]
-        .sort((a, b) => (b.runs || 0) - (a.runs || 0))
-        .slice(0, 5);
-      setTopAutomations(sorted);
-
-      setRecentRuns(Array.isArray(runsData) ? runsData : []);
-      setLoading(false);
+      const filteredRuns = filterRunsByDateRange(runs);
+      const processedData = processReportData(filteredRuns);
+      setReportData(processedData);
     } catch (error) {
-      console.error('Error fetching audit data:', error);
+      console.error('Error fetching report data:', error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const exportToCSV = () => {
-    const csvData = [
-      ['Date', 'Total', 'Success', 'Failed', 'Running', 'Pending'],
-      ...chartData.map(d => [d.label, d.total, d.success, d.failed, d.running, d.pending])
-    ];
+  const filterRunsByDateRange = (runs) => {
+    const now = new Date();
+    let startDate;
 
-    const csv = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-report-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    setShowExportMenu(false);
+    switch (dateRange) {
+      case 'today':
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case '7days':
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case '30days':
+        startDate = new Date(now.setDate(now.getDate() - 30));
+        break;
+      case 'monthly':
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case 'custom':
+        if (customStartDate) startDate = new Date(customStartDate);
+        break;
+      default:
+        startDate = new Date(now.setDate(now.getDate() - 30));
+    }
+
+    return runs.filter(run => {
+      const runDate = new Date(run.startedAt);
+      const matchesDate = !startDate || runDate >= startDate;
+      const matchesEndDate = !customEndDate || runDate <= new Date(customEndDate);
+      const matchesNamespace = selectedNamespace === 'all' || run.automation?.namespace === selectedNamespace;
+      return matchesDate && matchesEndDate && matchesNamespace;
+    });
+  };
+
+  const processReportData = (runs) => {
+    const stats = {
+      total: runs.length,
+      success: runs.filter(r => r.status === 'success').length,
+      failed: runs.filter(r => r.status === 'failed').length,
+      running: runs.filter(r => r.status === 'running').length,
+      pending: runs.filter(r => r.status === 'pending').length,
+      canceled: runs.filter(r => r.status === 'canceled').length,
+    };
+
+    stats.successRate = stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : 0;
+    stats.failureRate = stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : 0;
+    stats.avgDuration = runs.length > 0
+      ? (runs.filter(r => r.completedAt && r.startedAt)
+          .reduce((acc, r) => acc + (new Date(r.completedAt) - new Date(r.startedAt)), 0) / runs.length / 1000).toFixed(2)
+      : 0;
+
+    // Daily trend data
+    const dailyData = {};
+    runs.forEach(run => {
+      const date = new Date(run.startedAt).toLocaleDateString();
+      if (!dailyData[date]) {
+        dailyData[date] = { date, total: 0, success: 0, failed: 0, running: 0, pending: 0, canceled: 0 };
+      }
+      dailyData[date].total++;
+      dailyData[date][run.status]++;
+    });
+
+    const trendData = Object.values(dailyData).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Status distribution
+    const statusDistribution = [
+      { name: 'Success', value: stats.success, color: COLORS.success },
+      { name: 'Failed', value: stats.failed, color: COLORS.failed },
+      { name: 'Running', value: stats.running, color: COLORS.running },
+      { name: 'Pending', value: stats.pending, color: COLORS.pending },
+      { name: 'Canceled', value: stats.canceled, color: COLORS.canceled },
+    ].filter(item => item.value > 0);
+
+    // Top automations
+    const automationStats = {};
+    runs.forEach(run => {
+      const name = run.automation?.name || run.catalog?.name || 'Unknown';
+      if (!automationStats[name]) {
+        automationStats[name] = { name, total: 0, success: 0, failed: 0, durations: [] };
+      }
+      automationStats[name].total++;
+      if (run.status === 'success') automationStats[name].success++;
+      if (run.status === 'failed') automationStats[name].failed++;
+      if (run.completedAt && run.startedAt) {
+        automationStats[name].durations.push((new Date(run.completedAt) - new Date(run.startedAt)) / 1000);
+      }
+    });
+
+    const topAutomations = Object.values(automationStats)
+      .map(auto => ({
+        ...auto,
+        successRate: ((auto.success / auto.total) * 100).toFixed(1),
+        avgDuration: auto.durations.length > 0
+          ? (auto.durations.reduce((a, b) => a + b, 0) / auto.durations.length).toFixed(2)
+          : 0
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    // Hourly distribution
+    const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${i.toString().padStart(2, '0')}`,
+      count: 0,
+      success: 0,
+      failed: 0
+    }));
+
+    runs.forEach(run => {
+      const hour = new Date(run.startedAt).getHours();
+      hourlyData[hour].count++;
+      if (run.status === 'success') hourlyData[hour].success++;
+      if (run.status === 'failed') hourlyData[hour].failed++;
+    });
+
+    // User activity
+    const userStats = {};
+    runs.forEach(run => {
+      const user = run.executedBy || 'System';
+      if (!userStats[user]) {
+        userStats[user] = { name: user, executions: 0, success: 0, failed: 0 };
+      }
+      userStats[user].executions++;
+      if (run.status === 'success') userStats[user].success++;
+      if (run.status === 'failed') userStats[user].failed++;
+    });
+
+    const userActivity = Object.values(userStats)
+      .sort((a, b) => b.executions - a.executions)
+      .slice(0, 10);
+
+    // Performance scatter data
+    const scatterData = runs
+      .filter(r => r.completedAt && r.startedAt && r.status !== 'running')
+      .map(r => ({
+        name: r.automation?.name || r.catalog?.name || 'Unknown',
+        duration: ((new Date(r.completedAt) - new Date(r.startedAt)) / 1000),
+        status: r.status,
+        timestamp: r.startedAt
+      }))
+      .slice(0, 100);
+
+    return {
+      stats,
+      trendData,
+      statusDistribution,
+      topAutomations,
+      hourlyData,
+      userActivity,
+      scatterData,
+      allRuns: runs
+    };
+  };
+
+  const getDateRangeLabel = () => {
+    switch (dateRange) {
+      case 'today': return 'Today';
+      case '7days': return 'Last 7 Days';
+      case '30days': return 'Last 30 Days';
+      case 'monthly': return 'Last Month';
+      case 'custom': return `${customStartDate || 'Start'} to ${customEndDate || 'End'}`;
+      default: return 'Last 30 Days';
+    }
   };
 
   const exportToExcel = async () => {
-    // Create workbook with ExcelJS
+    if (!reportData) return;
+
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'AutoClik Platform';
-    workbook.created = new Date();
 
-    // Sheet 1: Summary Stats
+    // Summary sheet
     const summarySheet = workbook.addWorksheet('Summary');
+    summarySheet.columns = [
+      { header: 'Metric', key: 'metric', width: 30 },
+      { header: 'Value', key: 'value', width: 20 }
+    ];
+
     summarySheet.addRows([
-      ['Audit Report Summary'],
-      ['Generated:', new Date().toLocaleDateString()],
-      ['Time Range:', timeRange.charAt(0).toUpperCase() + timeRange.slice(1)],
-      [],
-      ['Metric', 'Value'],
-      ['Total Executions', stats.total],
-      ['Successful', stats.success],
-      ['Failed', stats.failed],
-      ['Running', stats.running],
-      ['Pending', stats.pending],
-      ['Success Rate', `${calculateSuccessRate()}%`],
+      { metric: 'Report Period', value: getDateRangeLabel() },
+      { metric: 'Total Executions', value: reportData.stats.total },
+      { metric: 'Successful', value: reportData.stats.success },
+      { metric: 'Failed', value: reportData.stats.failed },
+      { metric: 'Running', value: reportData.stats.running },
+      { metric: 'Canceled', value: reportData.stats.canceled },
+      { metric: 'Pending', value: reportData.stats.pending },
+      { metric: 'Success Rate', value: `${reportData.stats.successRate}%` },
+      { metric: 'Failure Rate', value: `${reportData.stats.failureRate}%` },
+      { metric: 'Average Duration (s)', value: reportData.stats.avgDuration }
     ]);
 
-    // Sheet 2: Execution History
-    const historySheet = workbook.addWorksheet('Execution History');
-    historySheet.addRows([
-      ['Date', 'Total', 'Success', 'Failed', 'Running', 'Pending'],
-      ...chartData.map(d => [d.label, d.total, d.success, d.failed, d.running, d.pending])
-    ]);
+    summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    summarySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4C12A1' }
+    };
 
-    // Sheet 3: Top Automations
-    const topSheet = workbook.addWorksheet('Top Automations');
-    topSheet.addRows([
-      ['Rank', 'Automation Name', 'Namespace', 'Total Runs'],
-      ...topAutomations.map((auto, idx) => [idx + 1, auto.name, auto.namespace, auto.runs || 0])
-    ]);
+    // Top Automations sheet
+    const autoSheet = workbook.addWorksheet('Top Automations');
+    autoSheet.columns = [
+      { header: 'Automation', key: 'name', width: 35 },
+      { header: 'Total Runs', key: 'total', width: 15 },
+      { header: 'Success', key: 'success', width: 15 },
+      { header: 'Failed', key: 'failed', width: 15 },
+      { header: 'Success Rate', key: 'successRate', width: 15 },
+      { header: 'Avg Duration (s)', key: 'avgDuration', width: 18 }
+    ];
 
-    // Download
+    reportData.topAutomations.forEach(auto => {
+      autoSheet.addRow({
+        name: auto.name,
+        total: auto.total,
+        success: auto.success,
+        failed: auto.failed,
+        successRate: `${auto.successRate}%`,
+        avgDuration: auto.avgDuration
+      });
+    });
+
+    autoSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    autoSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4C12A1' }
+    };
+
+    // Daily Trend sheet
+    const trendSheet = workbook.addWorksheet('Daily Trends');
+    trendSheet.columns = [
+      { header: 'Date', key: 'date', width: 15 },
+      { header: 'Total', key: 'total', width: 12 },
+      { header: 'Success', key: 'success', width: 12 },
+      { header: 'Failed', key: 'failed', width: 12 },
+      { header: 'Running', key: 'running', width: 12 },
+      { header: 'Canceled', key: 'canceled', width: 12 },
+      { header: 'Pending', key: 'pending', width: 12 }
+    ];
+
+    reportData.trendData.forEach(day => {
+      trendSheet.addRow(day);
+    });
+
+    trendSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    trendSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4C12A1' }
+    };
+
+    // Add detailed execution data sheet
+    const detailSheet = workbook.addWorksheet('All Executions');
+    detailSheet.columns = [
+      { header: 'Execution ID', key: 'uniqueId', width: 18 },
+      { header: 'Automation', key: 'automation', width: 30 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Started At', key: 'startedAt', width: 20 },
+      { header: 'Completed At', key: 'completedAt', width: 20 },
+      { header: 'Duration (s)', key: 'duration', width: 15 },
+      { header: 'Executed By', key: 'executedBy', width: 20 },
+      { header: 'AWX Job ID', key: 'awxJobId', width: 15 },
+      { header: 'Error Message', key: 'errorMessage', width: 40 }
+    ];
+
+    reportData.allRuns.forEach(run => {
+      detailSheet.addRow({
+        uniqueId: run.uniqueId || '',
+        automation: run.automation?.name || run.catalog?.name || '',
+        status: run.status || '',
+        startedAt: run.startedAt ? new Date(run.startedAt).toLocaleString() : '',
+        completedAt: run.completedAt ? new Date(run.completedAt).toLocaleString() : '',
+        duration: run.completedAt && run.startedAt
+          ? ((new Date(run.completedAt) - new Date(run.startedAt)) / 1000).toFixed(2)
+          : '',
+        executedBy: run.executedBy || '',
+        awxJobId: run.awxJobId || '',
+        errorMessage: run.errorMessage || ''
+      });
+    });
+
+    detailSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    detailSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4C12A1' }
+    };
+
+    // Capture charts as images and add to Excel
+    try {
+      if (chartsRef.current) {
+        const canvas = await html2canvas(chartsRef.current, {
+          backgroundColor: '#ffffff',
+          scale: 2
+        });
+        const imageData = canvas.toDataURL('image/png');
+
+        const chartsSheet = workbook.addWorksheet('Charts');
+        const imageBuffer = Buffer.from(imageData.split(',')[1], 'base64');
+        const imageId = workbook.addImage({
+          buffer: imageBuffer,
+          extension: 'png',
+        });
+
+        chartsSheet.addImage(imageId, {
+          tl: { col: 0, row: 0 },
+          ext: { width: 1200, height: 800 }
+        });
+      }
+    } catch (error) {
+      console.error('Error capturing charts:', error);
+    }
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `audit-report-${timeRange}-${new Date().toISOString().split('T')[0]}.xlsx`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
     window.URL.revokeObjectURL(url);
-    setShowExportMenu(false);
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+  const exportToPDF = async () => {
+    if (!reportData) return;
 
-    // Title
-    doc.setFontSize(20);
-    doc.setTextColor(76, 18, 161); // Purple color
-    doc.text('Audit Report', pageWidth / 2, 20, { align: 'center' });
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
 
-    // Metadata
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-    doc.text(`Time Range: ${timeRange.charAt(0).toUpperCase() + timeRange.slice(1)}`, 14, 36);
+    pdf.setFontSize(20);
+    pdf.setTextColor(76, 18, 161);
+    pdf.text('Audit Report', pageWidth / 2, 20, { align: 'center' });
 
-    // Summary Stats
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text('Summary Statistics', 14, 48);
+    pdf.setFontSize(10);
+    pdf.setTextColor(100);
+    pdf.text(getDateRangeLabel(), pageWidth / 2, 28, { align: 'center' });
 
-    doc.autoTable({
-      startY: 52,
+    pdf.setFontSize(14);
+    pdf.setTextColor(0);
+    pdf.text('Executive Summary', 14, 40);
+
+    const summaryData = [
+      ['Total Executions', reportData.stats.total],
+      ['Successful', reportData.stats.success],
+      ['Failed', reportData.stats.failed],
+      ['Success Rate', `${reportData.stats.successRate}%`],
+      ['Failure Rate', `${reportData.stats.failureRate}%`],
+      ['Avg Duration', `${reportData.stats.avgDuration}s`]
+    ];
+
+    pdf.autoTable({
+      startY: 45,
       head: [['Metric', 'Value']],
-      body: [
-        ['Total Executions', stats.total.toString()],
-        ['Successful', stats.success.toString()],
-        ['Failed', stats.failed.toString()],
-        ['Running', stats.running.toString()],
-        ['Pending', stats.pending.toString()],
-        ['Success Rate', `${calculateSuccessRate()}%`],
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: [76, 18, 161] },
-    });
-
-    // Execution History
-    const historyStartY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(14);
-    doc.text('Execution History', 14, historyStartY);
-
-    doc.autoTable({
-      startY: historyStartY + 4,
-      head: [['Date', 'Total', 'Success', 'Failed', 'Running', 'Pending']],
-      body: chartData.map(d => [d.label, d.total, d.success, d.failed, d.running, d.pending]),
+      body: summaryData,
       theme: 'grid',
       headStyles: { fillColor: [76, 18, 161] },
-      styles: { fontSize: 8 },
+      margin: { left: 14, right: 14 }
     });
 
-    // Top Automations (if fits on page)
-    const topStartY = doc.lastAutoTable.finalY + 10;
-    if (topStartY < 250) {
-      doc.setFontSize(14);
-      doc.text('Top Automations', 14, topStartY);
+    pdf.setFontSize(14);
+    pdf.text('Top Automations', 14, pdf.lastAutoTable.finalY + 15);
 
-      doc.autoTable({
-        startY: topStartY + 4,
-        head: [['Rank', 'Automation Name', 'Namespace', 'Total Runs']],
-        body: topAutomations.slice(0, 10).map((auto, idx) => [
-          (idx + 1).toString(),
-          auto.name,
-          auto.namespace,
-          (auto.runs || 0).toString()
-        ]),
-        theme: 'grid',
-        headStyles: { fillColor: [76, 18, 161] },
-        styles: { fontSize: 8 },
-      });
-    }
+    const autoData = reportData.topAutomations.slice(0, 5).map(auto => [
+      auto.name,
+      auto.total,
+      auto.success,
+      auto.failed,
+      `${auto.successRate}%`
+    ]);
 
-    // Download
-    doc.save(`audit-report-${timeRange}-${new Date().toISOString().split('T')[0]}.pdf`);
-    setShowExportMenu(false);
-  };
-
-  const calculateSuccessRate = () => {
-    if (stats.total === 0) return 0;
-    return ((stats.success / stats.total) * 100).toFixed(1);
-  };
-
-  const getMaxValue = () => {
-    if (chartData.length === 0) return 100;
-    return Math.max(...chartData.map(d => d.total), 10);
-  };
-
-  const getBarHeight = (value) => {
-    const max = getMaxValue();
-    return Math.max((value / max) * 100, 2); // Minimum 2% height for visibility
-  };
-
-  // Calculate pie chart segments
-  const getPieSegments = (statsData) => {
-    const total = statsData.total || 1;
-    const segments = [
-      { label: 'Success', value: statsData.success, color: 'var(--success)', percentage: (statsData.success / total) * 100 },
-      { label: 'Failed', value: statsData.failed, color: '#ef4444', percentage: (statsData.failed / total) * 100 },
-      { label: 'Running', value: statsData.running, color: '#3b82f6', percentage: (statsData.running / total) * 100 },
-      { label: 'Pending', value: statsData.pending, color: '#f59e0b', percentage: (statsData.pending / total) * 100 },
-    ].filter(s => s.value > 0);
-
-    let currentAngle = -90; // Start from top
-    return segments.map(segment => {
-      const angle = (segment.percentage / 100) * 360;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle = endAngle;
-
-      return {
-        ...segment,
-        startAngle,
-        endAngle,
-        path: createArc(100, 100, 80, startAngle, endAngle),
-      };
+    pdf.autoTable({
+      startY: pdf.lastAutoTable.finalY + 20,
+      head: [['Automation', 'Total', 'Success', 'Failed', 'Success Rate']],
+      body: autoData,
+      theme: 'grid',
+      headStyles: { fillColor: [76, 18, 161] },
+      margin: { left: 14, right: 14 }
     });
-  };
 
-  const createArc = (cx, cy, radius, startAngle, endAngle) => {
-    const start = polarToCartesian(cx, cy, radius, endAngle);
-    const end = polarToCartesian(cx, cy, radius, startAngle);
-    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
-
-    return [
-      'M', cx, cy,
-      'L', start.x, start.y,
-      'A', radius, radius, 0, largeArc, 0, end.x, end.y,
-      'Z'
-    ].join(' ');
-  };
-
-  const polarToCartesian = (cx, cy, radius, angle) => {
-    const radians = (angle * Math.PI) / 180;
-    return {
-      x: cx + radius * Math.cos(radians),
-      y: cy + radius * Math.sin(radians),
-    };
-  };
-
-  // Filter runs based on dropdown selections
-  const filterRunsByDate = (runs, dateFilter) => {
-    if (dateFilter === 'all') return runs;
-
-    const now = new Date();
-    let cutoffDate = new Date(now);
-
-    if (dateFilter === 'today') {
-      cutoffDate.setHours(0, 0, 0, 0);
-    } else if (dateFilter === '7days') {
-      cutoffDate.setDate(cutoffDate.getDate() - 7);
-      cutoffDate.setHours(0, 0, 0, 0);
-    } else if (dateFilter === '30days') {
-      cutoffDate.setDate(cutoffDate.getDate() - 30);
-      cutoffDate.setHours(0, 0, 0, 0);
-    } else if (dateFilter === '90days') {
-      cutoffDate.setDate(cutoffDate.getDate() - 90);
-      cutoffDate.setHours(0, 0, 0, 0);
-    }
-
-    return runs.filter(run => new Date(run.startedAt) >= cutoffDate);
-  };
-
-  const filterRunsByNamespace = (runs, namespaceFilter) => {
-    if (namespaceFilter === 'all') return runs;
-
-    return runs.filter(run => {
-      const automation = automations.find(a => a.id === run.automationId);
-      return automation && automation.namespace === namespaceFilter;
-    });
-  };
-
-  // Calculate filtered stats for Status Distribution chart
-  const getFilteredStatusStats = () => {
-    let filteredRuns = [...allRuns];
-    filteredRuns = filterRunsByDate(filteredRuns, statusDateFilter);
-    filteredRuns = filterRunsByNamespace(filteredRuns, statusNamespaceFilter);
-
-    return {
-      total: filteredRuns.length,
-      success: filteredRuns.filter(r => r.status === 'success').length,
-      failed: filteredRuns.filter(r => r.status === 'failed').length,
-      running: filteredRuns.filter(r => r.status === 'running').length,
-      pending: filteredRuns.filter(r => r.status === 'pending').length,
-    };
-  };
-
-  // Calculate filtered chart data for Execution Trend chart
-  const getFilteredChartData = () => {
-    let filteredRuns = [...allRuns];
-    filteredRuns = filterRunsByDate(filteredRuns, executionDateFilter);
-    filteredRuns = filterRunsByNamespace(filteredRuns, executionNamespaceFilter);
-
-    // Regenerate chart data from filtered runs
-    return chartData.map(dataPoint => {
-      const pointDate = new Date(dataPoint.date);
-      const nextDate = new Date(pointDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const pointRuns = filteredRuns.filter(run => {
-        const runDate = new Date(run.startedAt);
-        return runDate >= pointDate && runDate < nextDate;
+    if (chartsRef.current) {
+      const canvas = await html2canvas(chartsRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 1.5
       });
+      const imgData = canvas.toDataURL('image/png');
 
-      return {
-        ...dataPoint,
-        total: pointRuns.length,
-        success: pointRuns.filter(r => r.status === 'success').length,
-        failed: pointRuns.filter(r => r.status === 'failed').length,
-        running: pointRuns.filter(r => r.status === 'running').length,
-        pending: pointRuns.filter(r => r.status === 'pending').length,
-      };
-    });
+      pdf.addPage();
+      pdf.setFontSize(14);
+      pdf.text('Charts & Visualizations', 14, 20);
+      pdf.addImage(imgData, 'PNG', 10, 30, 190, 120);
+    }
+
+    pdf.save(`audit_report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Use filtered data for charts - memoized for performance
-  const filteredStatusStats = useMemo(() => getFilteredStatusStats(), [allRuns, statusDateFilter, statusNamespaceFilter, automations]);
-  const filteredChartData = useMemo(() => getFilteredChartData(), [chartData, allRuns, executionDateFilter, executionNamespaceFilter, automations]);
-
-  const pieSegments = useMemo(() => getPieSegments(filteredStatusStats), [filteredStatusStats]);
-
-  // Filter runs for detailed view
-  const getDetailedViewRuns = () => {
-    let filtered = [...allRuns];
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(run => {
-        const automation = automations.find(a => a.id === run.automationId);
-        return (
-          run.uniqueId?.toLowerCase().includes(query) ||
-          run.status?.toLowerCase().includes(query) ||
-          run.executedBy?.toLowerCase().includes(query) ||
-          run.awxJobId?.toString().includes(query) ||
-          automation?.name?.toLowerCase().includes(query) ||
-          automation?.namespace?.toLowerCase().includes(query)
-        );
-      });
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--border)',
+          padding: '12px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0, fontWeight: 'bold', marginBottom: '8px', color: 'var(--text)' }}>{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ margin: '4px 0', color: entry.color, fontSize: '13px' }}>
+              {entry.name}: <strong>{entry.value !== undefined && entry.value !== null ? entry.value : 0}</strong>
+            </p>
+          ))}
+        </div>
+      );
     }
-
-    // Apply advanced filters
-    if (advancedFilters.status !== 'all') {
-      filtered = filtered.filter(run => run.status === advancedFilters.status);
-    }
-
-    if (advancedFilters.namespace !== 'all') {
-      filtered = filtered.filter(run => {
-        const automation = automations.find(a => a.id === run.automationId);
-        return automation && automation.namespace === advancedFilters.namespace;
-      });
-    }
-
-    if (advancedFilters.dateFrom) {
-      const fromDate = new Date(advancedFilters.dateFrom);
-      fromDate.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(run => new Date(run.startedAt) >= fromDate);
-    }
-
-    if (advancedFilters.dateTo) {
-      const toDate = new Date(advancedFilters.dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(run => new Date(run.startedAt) <= toDate);
-    }
-
-    if (advancedFilters.executedBy.trim()) {
-      const query = advancedFilters.executedBy.toLowerCase();
-      filtered = filtered.filter(run => run.executedBy?.toLowerCase().includes(query));
-    }
-
-    if (advancedFilters.automationName.trim()) {
-      const query = advancedFilters.automationName.toLowerCase();
-      filtered = filtered.filter(run => {
-        const automation = automations.find(a => a.id === run.automationId);
-        return automation && automation.name.toLowerCase().includes(query);
-      });
-    }
-
-    return filtered;
+    return null;
   };
 
-  const filteredDetailedRuns = getDetailedViewRuns();
-  const totalPages = Math.ceil(filteredDetailedRuns.length / pageSize);
-  const paginatedRuns = filteredDetailedRuns.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, advancedFilters, pageSize]);
-
-  const clearAllFilters = () => {
-    setSearchQuery('');
-    setAdvancedFilters({
-      status: 'all',
-      namespace: 'all',
-      dateFrom: '',
-      dateTo: '',
-      executedBy: '',
-      automationName: ''
-    });
-  };
-
-  return (
-    <div className="space-y-4 pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-light" style={{ color: 'var(--text)' }}>Audit Report</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Track automation execution trends and statistics
+  const CustomPieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--border)',
+          padding: '12px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0, fontWeight: 'bold', color: payload[0].payload.color }}>
+            {payload[0].name}
+          </p>
+          <p style={{ margin: '4px 0', color: 'var(--text)', fontSize: '13px' }}>
+            Count: <strong>{payload[0].value}</strong>
+          </p>
+          <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '12px' }}>
+            {((payload[0].value / reportData.stats.total) * 100).toFixed(1)}%
           </p>
         </div>
+      );
+    }
+    return null;
+  };
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Time Range Selector */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Calendar className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--muted)' }} />
-            {['30days', 'daily', 'weekly', 'monthly', 'custom'].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize hover:opacity-80"
-                style={{
-                  backgroundColor: timeRange === range ? 'var(--primary)' : 'var(--surface)',
-                  color: timeRange === range ? 'white' : 'var(--text)',
-                  border: `1px solid ${timeRange === range ? 'var(--primary)' : 'var(--border)'}`
-                }}
-              >
-                {range === '30days' ? '30 Days' : range}
-              </button>
-            ))}
-          </div>
+  const viewExecutionDetails = (execution) => {
+    setSelectedExecution(execution);
+    setShowDetailModal(true);
+  };
 
-          {/* Export Dropdown */}
-          <div className="relative" ref={exportMenuRef}>
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:opacity-80"
-              style={{
-                backgroundColor: 'var(--surface)',
-                color: 'var(--text)',
-                border: '1px solid var(--border)'
-              }}
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
-            </button>
-
-            {showExportMenu && (
-              <div
-                className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg z-50 overflow-hidden"
-                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-              >
-                <button
-                  onClick={exportToCSV}
-                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3"
-                  style={{ color: 'var(--text)' }}
-                >
-                  <FileText className="h-4 w-4" />
-                  Export as CSV
-                </button>
-                <button
-                  onClick={exportToExcel}
-                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3"
-                  style={{ color: 'var(--text)' }}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Export as Excel
-                </button>
-                <button
-                  onClick={exportToPDF}
-                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3"
-                  style={{ color: 'var(--text)' }}
-                >
-                  <FileText className="h-4 w-4" />
-                  Export as PDF
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--primary)' }}></div>
       </div>
+    );
+  }
 
-      {/* Custom Date Range Inputs */}
-      {timeRange === 'custom' && (
-        <div className="rounded-lg p-4 flex items-center gap-4 flex-wrap" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-              Start Date:
-            </label>
-            <input
-              type="date"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
-              style={{
-                backgroundColor: 'var(--bg)',
-                borderColor: 'var(--border)',
-                color: 'var(--text)',
-              }}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-              End Date:
-            </label>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
-              style={{
-                backgroundColor: 'var(--bg)',
-                borderColor: 'var(--border)',
-                color: 'var(--text)',
-              }}
-            />
-          </div>
-
-          {customStartDate && customEndDate && (
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Showing data from {new Date(customStartDate).toLocaleDateString()} to {new Date(customEndDate).toLocaleDateString()}
-            </p>
-          )}
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
+            <Activity className="inline h-8 w-8 mr-2" />
+            Audit Reports & Analytics
+          </h1>
+          <p className="mt-1" style={{ color: 'var(--muted)' }}>
+            Comprehensive execution analytics and reporting dashboard
+          </p>
         </div>
-      )}
-
-      {/* Compact Stats Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-        <CompactStatCard
-          label="Total"
-          value={stats.total}
-          icon={Calendar}
-          color="var(--primary)"
-        />
-        <CompactStatCard
-          label="Success"
-          value={stats.success}
-          icon={CheckCircle}
-          color="var(--success)"
-        />
-        <CompactStatCard
-          label="Failed"
-          value={stats.failed}
-          icon={XCircle}
-          color="#ef4444"
-        />
-        <CompactStatCard
-          label="Running"
-          value={stats.running}
-          icon={Clock}
-          color="#3b82f6"
-        />
-        <CompactStatCard
-          label="Pending"
-          value={stats.pending}
-          icon={AlertCircle}
-          color="#f59e0b"
-        />
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Pie Chart */}
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
-              Status Distribution
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Date Filter Buttons */}
-              <div className="flex items-center gap-1">
-                {['all', 'today', '7days', '30days', '90days'].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setStatusDateFilter(filter)}
-                    className="px-2 py-1 rounded text-xs font-medium transition-all"
-                    style={{
-                      backgroundColor: statusDateFilter === filter ? 'var(--primary)' : 'var(--bg)',
-                      color: statusDateFilter === filter ? 'white' : 'var(--text)',
-                      border: `1px solid ${statusDateFilter === filter ? 'var(--primary)' : 'var(--border)'}`
-                    }}
-                  >
-                    {filter === 'all' ? 'All' : filter === 'today' ? 'Today' : filter.replace('days', 'd')}
-                  </button>
-                ))}
-              </div>
-              {/* Namespace Filter */}
-              <select
-                value={statusNamespaceFilter}
-                onChange={(e) => setStatusNamespaceFilter(e.target.value)}
-                className="px-2 py-1 rounded text-xs border appearance-none"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text)',
-                  paddingRight: '1.5rem',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.25rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1em 1em'
-                }}
-              >
-                <option value="all">All Categories</option>
-                {namespaces.map((ns) => (
-                  <option key={ns.id} value={ns.name}>{ns.displayName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-8">
-              <p style={{ color: 'var(--muted)' }}>Loading...</p>
-            </div>
-          ) : filteredStatusStats.total === 0 ? (
-            <div className="text-center py-8">
-              <p style={{ color: 'var(--muted)' }}>No data available</p>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center">
-              <div className="relative">
-                {/* SVG Pie Chart */}
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                  {pieSegments.map((segment, index) => (
-                    <g key={index}>
-                      <path
-                        d={segment.path}
-                        fill={segment.color}
-                        className="transition-opacity hover:opacity-80 cursor-pointer"
-                      />
-                    </g>
-                  ))}
-                  {/* Center circle for donut effect */}
-                  <circle cx="100" cy="100" r="50" fill="var(--surface)" />
-                  <text
-                    x="100"
-                    y="95"
-                    textAnchor="middle"
-                    className="text-2xl font-bold"
-                    fill="var(--text)"
-                  >
-                    {filteredStatusStats.total}
-                  </text>
-                  <text
-                    x="100"
-                    y="110"
-                    textAnchor="middle"
-                    className="text-xs"
-                    fill="var(--muted)"
-                  >
-                    Total Runs
-                  </text>
-                </svg>
-
-                {/* Legend */}
-                <div className="mt-6 space-y-2">
-                  {pieSegments.map((segment, index) => (
-                    <div key={index} className="flex items-center justify-between gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: segment.color }}
-                        />
-                        <span style={{ color: 'var(--text)' }}>{segment.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold" style={{ color: 'var(--text)' }}>
-                          {segment.value}
-                        </span>
-                        <span style={{ color: 'var(--muted)' }}>
-                          ({segment.percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Area Chart */}
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
-              Execution Trend ({timeRange.charAt(0).toUpperCase() + timeRange.slice(1)})
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Date Filter Buttons */}
-              <div className="flex items-center gap-1">
-                {['all', 'today', '7days', '30days', '90days'].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setExecutionDateFilter(filter)}
-                    className="px-2 py-1 rounded text-xs font-medium transition-all"
-                    style={{
-                      backgroundColor: executionDateFilter === filter ? 'var(--primary)' : 'var(--bg)',
-                      color: executionDateFilter === filter ? 'white' : 'var(--text)',
-                      border: `1px solid ${executionDateFilter === filter ? 'var(--primary)' : 'var(--border)'}`
-                    }}
-                  >
-                    {filter === 'all' ? 'All' : filter === 'today' ? 'Today' : filter.replace('days', 'd')}
-                  </button>
-                ))}
-              </div>
-              {/* Namespace Filter */}
-              <select
-                value={executionNamespaceFilter}
-                onChange={(e) => setExecutionNamespaceFilter(e.target.value)}
-                className="px-2 py-1 rounded text-xs border appearance-none"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text)',
-                  paddingRight: '1.5rem',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.25rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1em 1em'
-                }}
-              >
-                <option value="all">All Categories</option>
-                {namespaces.map((ns) => (
-                  <option key={ns.id} value={ns.name}>{ns.displayName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-8">
-              <p style={{ color: 'var(--muted)' }}>Loading...</p>
-            </div>
-          ) : filteredChartData.length === 0 ? (
-            <div className="text-center py-8">
-              <p style={{ color: 'var(--muted)' }}>No data available</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Area Chart */}
-              <div className="overflow-x-auto">
-                <svg className="w-full min-w-[500px]" height="220" viewBox="0 0 800 220">
-                  {/* Grid lines */}
-                  {[0, 25, 50, 75, 100].map((percent) => (
-                    <line
-                      key={percent}
-                      x1="40"
-                      y1={180 - (percent * 1.6)}
-                      x2="780"
-                      y2={180 - (percent * 1.6)}
-                      stroke="var(--border)"
-                      strokeWidth="1"
-                      strokeDasharray="4"
-                      opacity="0.3"
-                    />
-                  ))}
-
-                  {/* Area paths for each status */}
-                  {(() => {
-                    const width = 740;
-                    const height = 160;
-                    const padding = 40;
-                    const step = width / (filteredChartData.length - 1 || 1);
-                    const maxValue = getMaxValue();
-
-                    const createAreaPath = (dataKey) => {
-                      const points = filteredChartData.map((item, index) => ({
-                        x: padding + (index * step),
-                        y: 20 + (height - ((item[dataKey] / maxValue) * height))
-                      }));
-
-                      const pathD = `
-                        M ${points[0].x} ${height + 20}
-                        L ${points[0].x} ${points[0].y}
-                        ${points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ')}
-                        L ${points[points.length - 1].x} ${height + 20}
-                        Z
-                      `;
-
-                      const lineD = points.map((p, i) =>
-                        i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
-                      ).join(' ');
-
-                      return { pathD, lineD, points };
-                    };
-
-                    return (
-                      <>
-                        {/* Success Area */}
-                        {visibleStatuses.success && (() => {
-                          const { pathD, lineD, points } = createAreaPath('success');
-                          return (
-                            <g key="success">
-                              <path d={pathD} fill="var(--success)" fillOpacity="0.2" />
-                              <path d={lineD} stroke="var(--success)" strokeWidth="2" fill="none" />
-                              {points.map((point, i) => (
-                                <circle
-                                  key={i}
-                                  cx={point.x}
-                                  cy={point.y}
-                                  r="4"
-                                  fill="var(--success)"
-                                  className="hover:r-6 transition-all cursor-pointer"
-                                >
-                                  <title>Success: {filteredChartData[i].success}</title>
-                                </circle>
-                              ))}
-                            </g>
-                          );
-                        })()}
-
-                        {/* Failed Area */}
-                        {visibleStatuses.failed && (() => {
-                          const { pathD, lineD, points } = createAreaPath('failed');
-                          return (
-                            <g key="failed">
-                              <path d={pathD} fill="#ef4444" fillOpacity="0.2" />
-                              <path d={lineD} stroke="#ef4444" strokeWidth="2" fill="none" />
-                              {points.map((point, i) => (
-                                <circle
-                                  key={i}
-                                  cx={point.x}
-                                  cy={point.y}
-                                  r="4"
-                                  fill="#ef4444"
-                                  className="hover:r-6 transition-all cursor-pointer"
-                                >
-                                  <title>Failed: {filteredChartData[i].failed}</title>
-                                </circle>
-                              ))}
-                            </g>
-                          );
-                        })()}
-
-                        {/* Running Area */}
-                        {visibleStatuses.running && (() => {
-                          const { pathD, lineD, points } = createAreaPath('running');
-                          return (
-                            <g key="running">
-                              <path d={pathD} fill="#3b82f6" fillOpacity="0.2" />
-                              <path d={lineD} stroke="#3b82f6" strokeWidth="2" fill="none" />
-                              {points.map((point, i) => (
-                                <circle
-                                  key={i}
-                                  cx={point.x}
-                                  cy={point.y}
-                                  r="4"
-                                  fill="#3b82f6"
-                                  className="hover:r-6 transition-all cursor-pointer"
-                                >
-                                  <title>Running: {filteredChartData[i].running}</title>
-                                </circle>
-                              ))}
-                            </g>
-                          );
-                        })()}
-
-                        {/* Pending Area */}
-                        {visibleStatuses.pending && (() => {
-                          const { pathD, lineD, points } = createAreaPath('pending');
-                          return (
-                            <g key="pending">
-                              <path d={pathD} fill="#f59e0b" fillOpacity="0.2" />
-                              <path d={lineD} stroke="#f59e0b" strokeWidth="2" fill="none" />
-                              {points.map((point, i) => (
-                                <circle
-                                  key={i}
-                                  cx={point.x}
-                                  cy={point.y}
-                                  r="4"
-                                  fill="#f59e0b"
-                                  className="hover:r-6 transition-all cursor-pointer"
-                                >
-                                  <title>Pending: {filteredChartData[i].pending}</title>
-                                </circle>
-                              ))}
-                            </g>
-                          );
-                        })()}
-
-                        {/* X-axis labels */}
-                        {filteredChartData.map((item, index) => (
-                          <text
-                            key={index}
-                            x={padding + (index * step)}
-                            y="200"
-                            textAnchor="middle"
-                            fontSize="10"
-                            fill="var(--muted)"
-                          >
-                            {item.label.split(' ').slice(0, 2).join(' ')}
-                          </text>
-                        ))}
-
-                        {/* Y-axis labels */}
-                        {[0, 25, 50, 75, 100].map((percent) => (
-                          <text
-                            key={percent}
-                            x="10"
-                            y={185 - (percent * 1.6)}
-                            textAnchor="start"
-                            fontSize="10"
-                            fill="var(--muted)"
-                          >
-                            {Math.round((maxValue * percent) / 100)}
-                          </text>
-                        ))}
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-
-              {/* Interactive Legend */}
-              <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
-                <button
-                  onClick={() => toggleStatus('success')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:opacity-80"
-                  style={{
-                    backgroundColor: visibleStatuses.success ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
-                    border: `1px solid ${visibleStatuses.success ? 'var(--success)' : 'var(--border)'}`,
-                    opacity: visibleStatuses.success ? 1 : 0.5
-                  }}
-                >
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--success)' }}></div>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Success</span>
-                </button>
-                <button
-                  onClick={() => toggleStatus('failed')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:opacity-80"
-                  style={{
-                    backgroundColor: visibleStatuses.failed ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
-                    border: `1px solid ${visibleStatuses.failed ? '#ef4444' : 'var(--border)'}`,
-                    opacity: visibleStatuses.failed ? 1 : 0.5
-                  }}
-                >
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#ef4444' }}></div>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Failed</span>
-                </button>
-                <button
-                  onClick={() => toggleStatus('running')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:opacity-80"
-                  style={{
-                    backgroundColor: visibleStatuses.running ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                    border: `1px solid ${visibleStatuses.running ? '#3b82f6' : 'var(--border)'}`,
-                    opacity: visibleStatuses.running ? 1 : 0.5
-                  }}
-                >
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#3b82f6' }}></div>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Running</span>
-                </button>
-                <button
-                  onClick={() => toggleStatus('pending')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:opacity-80"
-                  style={{
-                    backgroundColor: visibleStatuses.pending ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
-                    border: `1px solid ${visibleStatuses.pending ? '#f59e0b' : 'var(--border)'}`,
-                    opacity: visibleStatuses.pending ? 1 : 0.5
-                  }}
-                >
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#f59e0b' }}></div>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Pending</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Success Rate & Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold uppercase" style={{ color: 'var(--muted)' }}>Success Rate</h3>
-            <Activity className="h-4 w-4" style={{ color: 'var(--success)' }} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold" style={{ color: 'var(--success)' }}>{calculateSuccessRate()}%</span>
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>of {stats.total} runs</span>
-          </div>
-          <div className="mt-4 h-2 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
-            <div
-              className="h-2 rounded-full transition-all"
-              style={{
-                backgroundColor: 'var(--success)',
-                width: `${calculateSuccessRate()}%`
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold uppercase" style={{ color: 'var(--muted)' }}>Failure Rate</h3>
-            <TrendingDown className="h-4 w-4" style={{ color: '#ef4444' }} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold" style={{ color: '#ef4444' }}>
-              {stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : 0}%
-            </span>
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>{stats.failed} failed</span>
-          </div>
-          <div className="mt-4 h-2 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
-            <div
-              className="h-2 rounded-full transition-all"
-              style={{
-                backgroundColor: '#ef4444',
-                width: `${stats.total > 0 ? ((stats.failed / stats.total) * 100) : 0}%`
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold uppercase" style={{ color: 'var(--muted)' }}>Active & Pending</h3>
-            <Clock className="h-4 w-4" style={{ color: '#3b82f6' }} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold" style={{ color: '#3b82f6' }}>
-              {stats.running + stats.pending}
-            </span>
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>in progress</span>
-          </div>
-          <div className="mt-4 flex gap-2 text-xs">
-            <span style={{ color: '#3b82f6' }}>▪ Running: {stats.running}</span>
-            <span style={{ color: '#f59e0b' }}>▪ Pending: {stats.pending}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Automations & Recent Runs - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Top Automations */}
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
-              Top Automations by Execution Count
-            </h2>
-            <TrendingUp className="h-4 w-4" style={{ color: 'var(--muted)' }} />
-          </div>
-
-          {loading ? (
-            <div className="text-center py-6">
-              <p style={{ color: 'var(--muted)' }}>Loading...</p>
-            </div>
-          ) : topAutomations.length === 0 ? (
-            <div className="text-center py-6">
-              <p style={{ color: 'var(--muted)' }}>No automation data available</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {topAutomations.map((automation, index) => (
-                <div
-                  key={automation.id}
-                  className="flex items-center gap-4 p-3 rounded-lg hover:opacity-80 transition-opacity"
-                  style={{ backgroundColor: 'var(--bg)' }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold"
-                    style={{
-                      backgroundColor: index === 0 ? 'var(--success)15' : 'var(--surface)',
-                      color: index === 0 ? 'var(--success)' : 'var(--text)'
-                    }}
-                  >
-                    #{index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate" style={{ color: 'var(--text)' }}>
-                      {automation.name}
-                    </p>
-                    <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
-                      {automation.namespace}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold" style={{ color: 'var(--primary)' }}>
-                      {automation.runs || 0}
-                    </p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>runs</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Runs - Expandable */}
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-light" style={{ color: 'var(--text)' }}>
-            Recent Execution History
-          </h2>
+        <div className="flex gap-3">
           <button
-            onClick={() => setExpandedView(!expandedView)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium"
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
             style={{
-              backgroundColor: 'var(--bg)',
-              color: 'var(--text)'
+              backgroundColor: 'var(--success)',
+              color: 'white'
             }}
           >
-            {expandedView ? (
-              <>
-                <ChevronUp className="h-4 w-4" />
-                Collapse
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-4 w-4" />
-                Expand
-              </>
-            )}
+            <FileSpreadsheet className="h-4 w-4" />
+            Export Excel
           </button>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-6">
-            <p style={{ color: 'var(--muted)' }}>Loading...</p>
-          </div>
-        ) : recentRuns.length === 0 ? (
-          <div className="text-center py-6">
-            <p style={{ color: 'var(--muted)' }}>No recent runs</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]">
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                    Automation
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                    Started
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                    Duration
-                  </th>
-                  {expandedView && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      AWX Job ID
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {recentRuns.slice(0, expandedView ? 20 : 5).map((run) => {
-                  const statusConfig = {
-                    success: { color: 'var(--success)', bg: 'var(--success)15', icon: CheckCircle },
-                    failed: { color: '#ef4444', bg: '#ef444415', icon: XCircle },
-                    running: { color: '#3b82f6', bg: '#3b82f615', icon: Clock },
-                    pending: { color: '#f59e0b', bg: '#f59e0b15', icon: AlertCircle },
-                  };
-
-                  const config = statusConfig[run.status] || statusConfig.pending;
-                  const StatusIcon = config.icon;
-
-                  const duration = run.completedAt
-                    ? ((new Date(run.completedAt) - new Date(run.startedAt)) / 1000 / 60).toFixed(1)
-                    : null;
-
-                  return (
-                    <tr
-                      key={run.id}
-                      className="hover:opacity-80 transition-opacity"
-                      style={{ borderBottom: '1px solid var(--border)' }}
-                    >
-                      <td className="px-4 py-3">
-                        <div
-                          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ backgroundColor: config.bg, color: config.color }}
-                        >
-                          <StatusIcon className="h-3 w-3" />
-                          {run.status}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                          {run.automation?.name || 'Unknown'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                          {new Date(run.startedAt).toLocaleString()}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-mono" style={{ color: 'var(--text)' }}>
-                          {duration ? `${duration} min` : '-'}
-                        </p>
-                      </td>
-                      {expandedView && (
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-mono" style={{ color: 'var(--muted)' }}>
-                            {run.awxJobId || '-'}
-                          </p>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <button
+            onClick={exportToPDF}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'white'
+            }}
+          >
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </button>
         </div>
       </div>
 
-      {/* Detailed Records View with Pagination and Search */}
-      <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <div>
-            <h2 className="text-lg font-light" style={{ color: 'var(--text)' }}>Detailed Execution Records</h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-              {filteredDetailedRuns.length} records found
-            </p>
-          </div>
+      {/* View Mode Selector */}
+      <div className="flex gap-2 p-1 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', width: 'fit-content' }}>
+        <button
+          onClick={() => setViewMode('overview')}
+          className={`px-4 py-2 rounded-lg transition-all ${viewMode === 'overview' ? 'font-semibold' : ''}`}
+          style={{
+            backgroundColor: viewMode === 'overview' ? 'var(--primary)' : 'transparent',
+            color: viewMode === 'overview' ? 'white' : 'var(--text)'
+          }}
+        >
+          <BarChart3 className="inline h-4 w-4 mr-2" />
+          Overview
+        </button>
+        <button
+          onClick={() => setViewMode('charts')}
+          className={`px-4 py-2 rounded-lg transition-all ${viewMode === 'charts' ? 'font-semibold' : ''}`}
+          style={{
+            backgroundColor: viewMode === 'charts' ? 'var(--primary)' : 'transparent',
+            color: viewMode === 'charts' ? 'white' : 'var(--text)'
+          }}
+        >
+          <TrendingUp className="inline h-4 w-4 mr-2" />
+          Charts
+        </button>
+        <button
+          onClick={() => setViewMode('details')}
+          className={`px-4 py-2 rounded-lg transition-all ${viewMode === 'details' ? 'font-semibold' : ''}`}
+          style={{
+            backgroundColor: viewMode === 'details' ? 'var(--primary)' : 'transparent',
+            color: viewMode === 'details' ? 'white' : 'var(--text)'
+          }}
+        >
+          <Eye className="inline h-4 w-4 mr-2" />
+          Detailed Logs
+        </button>
+      </div>
 
-          {/* Search and Filters */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--muted)' }} />
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+            <Calendar className="inline h-4 w-4 mr-1" />
+            Date Range
+          </label>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: 'var(--bg)',
+              borderColor: 'var(--border)',
+              color: 'var(--text)',
+              focusRing: 'var(--primary)'
+            }}
+          >
+            <option value="today">Today</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
+            <option value="monthly">Last Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
+        {dateRange === 'custom' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                Start Date
+              </label>
               <input
-                type="text"
-                placeholder="Search runs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-lg text-sm transition-all w-64"
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                 style={{
-                  border: '1px solid var(--border)',
                   backgroundColor: 'var(--bg)',
+                  borderColor: 'var(--border)',
                   color: 'var(--text)'
                 }}
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--muted)' }}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
             </div>
-
-            {/* Advanced Search Toggle */}
-            <button
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-              style={{
-                backgroundColor: showAdvancedSearch ? 'var(--primary)' : 'var(--bg)',
-                color: showAdvancedSearch ? 'white' : 'var(--text)',
-                border: `1px solid ${showAdvancedSearch ? 'var(--primary)' : 'var(--border)'}`
-              }}
-            >
-              <Filter className="h-4 w-4" />
-              Advanced Filters
-              {Object.values(advancedFilters).some(v => v && v !== 'all') && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                  Active
-                </span>
-              )}
-            </button>
-
-            {/* Clear Filters */}
-            {(searchQuery || Object.values(advancedFilters).some(v => v && v !== 'all')) && (
-              <button
-                onClick={clearAllFilters}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                End Date
+              </label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                 style={{
                   backgroundColor: 'var(--bg)',
-                  color: '#ef4444',
-                  border: '1px solid var(--border)'
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)'
                 }}
-              >
-                Clear All
-              </button>
-            )}
-          </div>
+              />
+            </div>
+          </>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+            <Filter className="inline h-4 w-4 mr-1" />
+            Namespace Filter
+          </label>
+          <select
+            value={selectedNamespace}
+            onChange={(e) => setSelectedNamespace(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: 'var(--bg)',
+              borderColor: 'var(--border)',
+              color: 'var(--text)'
+            }}
+          >
+            <option value="all">All Namespaces</option>
+            {namespaces.map(ns => (
+              <option key={ns.id} value={ns.name}>{ns.displayName || ns.name}</option>
+            ))}
+          </select>
         </div>
+      </div>
 
-        {/* Advanced Search Panel */}
-        {showAdvancedSearch && (
-          <div className="mb-6 p-4 rounded-lg space-y-4" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Status
-                </label>
-                <select
-                  value={advancedFilters.status}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, status: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="success">Success</option>
-                  <option value="failed">Failed</option>
-                  <option value="running">Running</option>
-                  <option value="pending">Pending</option>
-                </select>
+      {/* Overview Mode */}
+      {viewMode === 'overview' && (
+        <>
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Total Executions</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: 'var(--text)' }}>
+                    {reportData?.stats.total || 0}
+                  </p>
+                </div>
+                <BarChart3 className="h-12 w-12" style={{ color: 'var(--primary)', opacity: 0.3 }} />
               </div>
+            </div>
 
-              {/* Namespace Filter */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Category
-                </label>
-                <select
-                  value={advancedFilters.namespace}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, namespace: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  <option value="all">All Categories</option>
-                  {namespaces.map((ns) => (
-                    <option key={ns.id} value={ns.name}>{ns.displayName}</option>
-                  ))}
-                </select>
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${COLORS.success}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Successful</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: COLORS.success }}>
+                    {reportData?.stats.success || 0}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.success }}>
+                    {reportData?.stats.successRate}% Success Rate
+                  </p>
+                </div>
+                <CheckCircle className="h-12 w-12" style={{ color: COLORS.success, opacity: 0.3 }} />
               </div>
+            </div>
 
-              {/* Date From */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Date From
-                </label>
-                <input
-                  type="date"
-                  value={advancedFilters.dateFrom}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                />
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${COLORS.failed}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Failed</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: COLORS.failed }}>
+                    {reportData?.stats.failed || 0}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.failed }}>
+                    {reportData?.stats.failureRate}% Failure Rate
+                  </p>
+                </div>
+                <XCircle className="h-12 w-12" style={{ color: COLORS.failed, opacity: 0.3 }} />
               </div>
+            </div>
 
-              {/* Date To */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Date To
-                </label>
-                <input
-                  type="date"
-                  value={advancedFilters.dateTo}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                />
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${COLORS.running}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Running</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: COLORS.running }}>
+                    {reportData?.stats.running || 0}
+                  </p>
+                </div>
+                <Clock className="h-12 w-12 animate-spin" style={{ color: COLORS.running, opacity: 0.3 }} />
               </div>
+            </div>
 
-              {/* Automation Name */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Automation Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Filter by name..."
-                  value={advancedFilters.automationName}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, automationName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                />
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${COLORS.canceled}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Canceled</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: COLORS.canceled }}>
+                    {reportData?.stats.canceled || 0}
+                  </p>
+                </div>
+                <StopCircle className="h-12 w-12" style={{ color: COLORS.canceled, opacity: 0.3 }} />
               </div>
+            </div>
 
-              {/* Executed By */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Executed By
-                </label>
-                <input
-                  type="text"
-                  placeholder="Filter by user..."
-                  value={advancedFilters.executedBy}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, executedBy: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                />
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${COLORS.pending}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Avg Duration</p>
+                  <p className="text-3xl font-bold mt-2" style={{ color: 'var(--text)' }}>
+                    {reportData?.stats.avgDuration || 0}s
+                  </p>
+                </div>
+                <Zap className="h-12 w-12" style={{ color: COLORS.pending, opacity: 0.3 }} />
               </div>
             </div>
           </div>
-        )}
 
-        {/* Results Table */}
-        {loading ? (
-          <div className="text-center py-12">
-            <p style={{ color: 'var(--muted)' }}>Loading records...</p>
+          {/* Quick Summary Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Status Distribution */}
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
+                <PieChart className="inline h-5 w-5 mr-2" />
+                Status Distribution
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPie>
+                  <Pie
+                    data={reportData?.statusDistribution || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {reportData?.statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                </RechartsPie>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Top Automations */}
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
+                <Server className="inline h-5 w-5 mr-2" />
+                Top 5 Automations
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsBar data={reportData?.topAutomations.slice(0, 5) || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted)" style={{ fontSize: '12px' }} />
+                  <YAxis stroke="var(--muted)" style={{ fontSize: '12px' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="total" fill="var(--primary)" name="Total Runs" />
+                  <Bar dataKey="success" fill={COLORS.success} name="Success" />
+                  <Bar dataKey="failed" fill={COLORS.failed} name="Failed" />
+                </RechartsBar>
+              </ResponsiveContainer>
+            </div>
           </div>
-        ) : paginatedRuns.length === 0 ? (
-          <div className="text-center py-12">
-            <Eye className="h-12 w-12 mx-auto mb-3" style={{ color: 'var(--muted)', opacity: 0.5 }} />
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>No records found matching your criteria</p>
+        </>
+      )}
+
+      {/* Charts Mode */}
+      {viewMode === 'charts' && (
+        <div ref={chartsRef} className="space-y-6">
+          {/* Trend Area Chart */}
+          <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                <TrendingUp className="inline h-5 w-5 mr-2" />
+                Execution Trend Over Time
+              </h2>
+              <div className="flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.success }}></div>
+                  <span style={{ color: 'var(--text)' }}>Success: {reportData?.stats.success || 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.failed }}></div>
+                  <span style={{ color: 'var(--text)' }}>Failed: {reportData?.stats.failed || 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.canceled }}></div>
+                  <span style={{ color: 'var(--text)' }}>Canceled: {reportData?.stats.canceled || 0}</span>
+                </div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={reportData?.trendData || []}>
+                <defs>
+                  <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={COLORS.success} stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.failed} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={COLORS.failed} stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorRunning" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.running} stopOpacity={0.6}/>
+                    <stop offset="95%" stopColor={COLORS.running} stopOpacity={0.05}/>
+                  </linearGradient>
+                  <linearGradient id="colorCanceled" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.canceled} stopOpacity={0.6}/>
+                    <stop offset="95%" stopColor={COLORS.canceled} stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <XAxis
+                  dataKey="date"
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--muted)' }}
+                />
+                <YAxis
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--muted)' }}
+                  label={{ value: 'Number of Executions', angle: -90, position: 'insideLeft', style: { fill: 'var(--muted)', fontSize: '12px' } }}
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{ stroke: 'var(--primary)', strokeWidth: 2, strokeDasharray: '5 5' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="success"
+                  stroke={COLORS.success}
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorSuccess)"
+                  name="Successful"
+                  dot={{ r: 4, fill: COLORS.success, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 7, fill: COLORS.success, strokeWidth: 3, stroke: '#fff' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="failed"
+                  stroke={COLORS.failed}
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorFailed)"
+                  name="Failed"
+                  dot={{ r: 4, fill: COLORS.failed, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 7, fill: COLORS.failed, strokeWidth: 3, stroke: '#fff' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="running"
+                  stroke={COLORS.running}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorRunning)"
+                  name="Running"
+                  dot={{ r: 3, fill: COLORS.running }}
+                  activeDot={{ r: 6, fill: COLORS.running }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="canceled"
+                  stroke={COLORS.canceled}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorCanceled)"
+                  name="Canceled"
+                  dot={{ r: 3, fill: COLORS.canceled }}
+                  activeDot={{ r: 6, fill: COLORS.canceled }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-        ) : (
-          <>
+
+          {/* Two column charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Status Distribution */}
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                  <PieChart className="inline h-5 w-5 mr-2" />
+                  Status Distribution
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                  Overall execution status breakdown
+                </p>
+              </div>
+              <ResponsiveContainer width="100%" height={350}>
+                <RechartsPie>
+                  <Pie
+                    data={reportData?.statusDistribution || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={{
+                      stroke: 'var(--muted)',
+                      strokeWidth: 1
+                    }}
+                    label={({ name, percent, value }) => `${name}: ${value} (${(percent * 100).toFixed(1)}%)`}
+                    outerRadius={110}
+                    innerRadius={40}
+                    paddingAngle={2}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {reportData?.statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#fff" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    formatter={(value, entry) => (
+                      <span style={{ color: 'var(--text)', fontSize: '13px' }}>
+                        {value}: {entry.payload.value}
+                      </span>
+                    )}
+                  />
+                </RechartsPie>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Top Automations */}
+            <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                  <BarChart3 className="inline h-5 w-5 mr-2" />
+                  Top Automations by Runs
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                  Most frequently executed automations
+                </p>
+              </div>
+              <ResponsiveContainer width="100%" height={350}>
+                <RechartsBar data={reportData?.topAutomations.slice(0, 6) || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="var(--muted)"
+                    style={{ fontSize: '11px' }}
+                    angle={-35}
+                    textAnchor="end"
+                    height={120}
+                    interval={0}
+                    tick={{ fill: 'var(--text)' }}
+                  />
+                  <YAxis
+                    stroke="var(--muted)"
+                    style={{ fontSize: '12px' }}
+                    tick={{ fill: 'var(--text)' }}
+                    label={{ value: 'Number of Runs', angle: -90, position: 'insideLeft', style: { fill: 'var(--muted)', fontSize: '12px' } }}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ fill: 'rgba(76, 18, 161, 0.1)' }}
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: '10px' }}
+                    iconType="circle"
+                  />
+                  <Bar dataKey="success" fill={COLORS.success} name="Success" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="failed" fill={COLORS.failed} name="Failed" radius={[4, 4, 0, 0]} />
+                </RechartsBar>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Hourly Heatmap */}
+          <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                <Clock className="inline h-5 w-5 mr-2" />
+                Execution Heatmap by Hour
+              </h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                Hourly execution patterns - darker colors indicate higher activity
+              </p>
+            </div>
+            <ResponsiveContainer width="100%" height={350}>
+              <RechartsBar data={reportData?.hourlyData || []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <XAxis
+                  dataKey="hour"
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--text)' }}
+                  label={{ value: 'Hour of Day (24-hour format)', position: 'insideBottom', offset: -5, style: { fill: 'var(--muted)', fontSize: '12px' } }}
+                />
+                <YAxis
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--text)' }}
+                  label={{ value: 'Number of Executions', angle: -90, position: 'insideLeft', style: { fill: 'var(--muted)', fontSize: '12px' } }}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const successRate = data.count > 0 ? ((data.success / data.count) * 100).toFixed(1) : 0;
+                      return (
+                        <div style={{
+                          backgroundColor: 'var(--surface)',
+                          border: '2px solid var(--primary)',
+                          padding: '14px',
+                          borderRadius: '10px',
+                          boxShadow: '0 6px 12px rgba(0,0,0,0.15)'
+                        }}>
+                          <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text)', fontSize: '14px', marginBottom: '8px' }}>
+                            ⏰ Hour: {data.hour}:00
+                          </p>
+                          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                            <p style={{ margin: '4px 0', color: 'var(--text)', fontSize: '13px' }}>
+                              📊 Total: <strong>{data.count}</strong>
+                            </p>
+                            <p style={{ margin: '4px 0', color: COLORS.success, fontSize: '13px' }}>
+                              ✓ Success: <strong>{data.success}</strong>
+                            </p>
+                            <p style={{ margin: '4px 0', color: COLORS.failed, fontSize: '13px' }}>
+                              ✗ Failed: <strong>{data.failed}</strong>
+                            </p>
+                            <p style={{ margin: '6px 0 0 0', color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>
+                              Success Rate: {successRate}%
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                  cursor={{ fill: 'rgba(76, 18, 161, 0.1)' }}
+                />
+                <Bar dataKey="count" name="Executions" radius={[6, 6, 0, 0]}>
+                  {reportData?.hourlyData.map((entry, index) => {
+                    const maxCount = Math.max(...reportData.hourlyData.map(d => d.count));
+                    const intensity = maxCount > 0 ? entry.count / maxCount : 0;
+                    return (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.count > 0 ? `rgba(76, 18, 161, ${0.3 + (intensity * 0.7)})` : 'var(--border)'}
+                      />
+                    );
+                  })}
+                </Bar>
+              </RechartsBar>
+            </ResponsiveContainer>
+          </div>
+
+          {/* User Activity */}
+          <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                <Users className="inline h-5 w-5 mr-2" />
+                User Activity Analysis
+              </h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                Top users by execution count with success/failure breakdown
+              </p>
+            </div>
+            <ResponsiveContainer width="100%" height={350}>
+              <RechartsBar data={reportData?.userActivity || []} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <XAxis
+                  type="number"
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--text)' }}
+                  label={{ value: 'Number of Executions', position: 'insideBottom', offset: -5, style: { fill: 'var(--muted)', fontSize: '12px' } }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="var(--muted)"
+                  style={{ fontSize: '12px' }}
+                  tick={{ fill: 'var(--text)' }}
+                  width={100}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const successRate = data.executions > 0 ? ((data.success / data.executions) * 100).toFixed(1) : 0;
+                      return (
+                        <div style={{
+                          backgroundColor: 'var(--surface)',
+                          border: '2px solid var(--primary)',
+                          padding: '14px',
+                          borderRadius: '10px',
+                          boxShadow: '0 6px 12px rgba(0,0,0,0.15)'
+                        }}>
+                          <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text)', fontSize: '14px', marginBottom: '8px' }}>
+                            👤 {data.name}
+                          </p>
+                          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                            <p style={{ margin: '4px 0', color: 'var(--text)', fontSize: '13px' }}>
+                              Total Executions: <strong>{data.executions}</strong>
+                            </p>
+                            <p style={{ margin: '4px 0', color: COLORS.success, fontSize: '13px' }}>
+                              ✓ Success: <strong>{data.success}</strong>
+                            </p>
+                            <p style={{ margin: '4px 0', color: COLORS.failed, fontSize: '13px' }}>
+                              ✗ Failed: <strong>{data.failed}</strong>
+                            </p>
+                            <p style={{ margin: '6px 0 0 0', color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>
+                              Success Rate: {successRate}%
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                  cursor={{ fill: 'rgba(76, 18, 161, 0.1)' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '10px' }}
+                  iconType="circle"
+                />
+                <Bar dataKey="success" fill={COLORS.success} name="Successful" stackId="a" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="failed" fill={COLORS.failed} name="Failed" stackId="a" radius={[0, 4, 4, 0]} />
+              </RechartsBar>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Logs Mode */}
+      {viewMode === 'details' && (
+        <div className="space-y-4">
+          <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                <Eye className="inline h-5 w-5 mr-2" />
+                Detailed Execution Logs
+              </h2>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, reportData?.allRuns.length || 0)} of {reportData?.allRuns.length || 0} executions
+              </p>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Run ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Automation
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Executed By
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Started At
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      Duration
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
-                      AWX Job
-                    </th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>ID</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Automation</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Status</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Started At</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Duration</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Executed By</th>
+                    <th className="text-left py-3 px-4" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: '600' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRuns.map((run) => {
-                    const automation = automations.find(a => a.id === run.automationId);
-                    const statusConfig = {
-                      success: { color: 'var(--success)', bg: 'var(--success)15', icon: CheckCircle },
-                      failed: { color: '#ef4444', bg: '#ef444415', icon: XCircle },
-                      running: { color: '#3b82f6', bg: '#3b82f615', icon: Clock },
-                      pending: { color: '#f59e0b', bg: '#f59e0b15', icon: AlertCircle },
-                    };
-
-                    const config = statusConfig[run.status] || statusConfig.pending;
-                    const StatusIcon = config.icon;
-
-                    const duration = run.completedAt
-                      ? ((new Date(run.completedAt) - new Date(run.startedAt)) / 1000 / 60).toFixed(1)
-                      : null;
-
-                    return (
-                      <tr
-                        key={run.id}
-                        className="hover:opacity-80 transition-opacity"
-                        style={{ borderBottom: '1px solid var(--border)' }}
-                      >
-                        <td className="px-4 py-3">
-                          <code className="text-xs font-mono" style={{ color: 'var(--primary)' }}>
-                            {run.uniqueId || run.id.substring(0, 8)}
-                          </code>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div
-                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
-                            style={{ backgroundColor: config.bg, color: config.color }}
-                          >
-                            <StatusIcon className="h-3 w-3" />
-                            {run.status}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-medium truncate max-w-xs" style={{ color: 'var(--text)' }}>
-                            {automation?.name || 'Unknown'}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                            {automation?.namespace || '-'}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm" style={{ color: 'var(--text)' }}>
-                            {run.executedBy || '-'}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                            {new Date(run.startedAt).toLocaleString()}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-mono" style={{ color: 'var(--text)' }}>
-                            {duration ? `${duration} min` : '-'}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
-                            {run.awxJobId || '-'}
-                          </p>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {reportData?.allRuns
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((run, index) => (
+                    <tr
+                      key={run.id}
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                        backgroundColor: index % 2 === 0 ? 'transparent' : 'var(--bg)'
+                      }}
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      <td className="py-3 px-4" style={{ color: 'var(--text)', fontSize: '13px', fontFamily: 'monospace' }}>
+                        {run.uniqueId || run.id?.substring(0, 8)}
+                      </td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text)', fontSize: '13px' }}>
+                        {run.automation?.name || run.catalog?.name || 'Unknown'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className="px-2 py-1 rounded text-xs font-semibold"
+                          style={{
+                            backgroundColor: COLORS[run.status] + '20',
+                            color: COLORS[run.status]
+                          }}
+                        >
+                          {run.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4" style={{ color: 'var(--muted)', fontSize: '13px' }}>
+                        {new Date(run.startedAt).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text)', fontSize: '13px' }}>
+                        {run.completedAt && run.startedAt
+                          ? `${((new Date(run.completedAt) - new Date(run.startedAt)) / 1000).toFixed(2)}s`
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text)', fontSize: '13px' }}>
+                        {run.executedBy || 'System'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => viewExecutionDetails(run)}
+                          className="flex items-center gap-1 px-3 py-1 rounded text-xs transition-colors"
+                          style={{
+                            backgroundColor: 'var(--primary)',
+                            color: 'white'
+                          }}
+                        >
+                          <Eye className="h-3 w-3" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            {/* Pagination Controls */}
-            <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
-              {/* Page Size Selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm" style={{ color: 'var(--muted)' }}>Show</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="px-3 py-1.5 rounded-lg text-sm"
-                  style={{
-                    backgroundColor: 'var(--bg)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                  entries per page
-                </span>
-              </div>
+          {/* Pagination Controls */}
+          {reportData && reportData.allRuns && reportData.allRuns.length > itemsPerPage && (
+            <div className="flex justify-center items-center gap-2 p-4 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage === 1 ? 'var(--bg)' : 'var(--primary)',
+                  color: currentPage === 1 ? 'var(--muted)' : 'white'
+                }}
+              >
+                First
+              </button>
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage === 1 ? 'var(--bg)' : 'var(--primary)',
+                  color: currentPage === 1 ? 'var(--muted)' : 'white'
+                }}
+              >
+                Previous
+              </button>
+              <span className="px-4 py-2" style={{ color: 'var(--text)' }}>
+                Page {currentPage} of {Math.ceil(reportData.allRuns.length / itemsPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage)}
+                className="px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage) ? 'var(--bg)' : 'var(--primary)',
+                  color: currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage) ? 'var(--muted)' : 'white'
+                }}
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.ceil(reportData.allRuns.length / itemsPerPage))}
+                disabled={currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage)}
+                className="px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage) ? 'var(--bg)' : 'var(--primary)',
+                  color: currentPage >= Math.ceil(reportData.allRuns.length / itemsPerPage) ? 'var(--muted)' : 'white'
+                }}
+              >
+                Last
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-              {/* Pagination Info and Navigation */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredDetailedRuns.length)} of {filteredDetailedRuns.length} records
-                </span>
-
-                <div className="flex items-center gap-2">
-                  {/* First Page */}
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      border: '1px solid var(--border)'
-                    }}
-                  >
-                    First
-                  </button>
-
-                  {/* Previous Page */}
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      border: '1px solid var(--border)'
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  {/* Page Numbers */}
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{
-                            backgroundColor: currentPage === pageNum ? 'var(--primary)' : 'var(--bg)',
-                            color: currentPage === pageNum ? 'white' : 'var(--text)',
-                            border: `1px solid ${currentPage === pageNum ? 'var(--primary)' : 'var(--border)'}`
-                          }}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Next Page */}
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      border: '1px solid var(--border)'
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-
-                  {/* Last Page */}
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      color: 'var(--text)',
-                      border: '1px solid var(--border)'
-                    }}
-                  >
-                    Last
-                  </button>
+      {/* Detail Modal */}
+      {showDetailModal && selectedExecution && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden" style={{ backgroundColor: 'var(--surface)' }}>
+            <div className="p-6" style={{ borderBottom: '1px solid var(--border)' }}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+                    Execution Details
+                  </h2>
+                  <p className="mt-1" style={{ color: 'var(--muted)' }}>
+                    {selectedExecution.automation?.name || selectedExecution.catalog?.name}
+                  </p>
                 </div>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-2 rounded-lg hover:bg-opacity-80 transition-colors"
+                  style={{ backgroundColor: 'var(--bg)' }}
+                >
+                  <XCircle className="h-6 w-6" style={{ color: 'var(--muted)' }} />
+                </button>
               </div>
             </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function CompactStatCard({ label, value, icon: Icon, color }) {
-  return (
-    <div
-      className="rounded-lg p-3 flex items-center gap-3"
-      style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}
-    >
-      <div
-        className="p-2 rounded-lg flex-shrink-0"
-        style={{ backgroundColor: `${color}15` }}
-      >
-        <Icon className="h-4 w-4" style={{ color }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium truncate" style={{ color: 'var(--muted)' }}>
-          {label}
-        </p>
-        <p className="text-xl font-bold truncate" style={{ color }}>
-          {value}
-        </p>
-      </div>
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Execution ID</p>
+                  <p className="font-mono text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.uniqueId || selectedExecution.id}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Status</p>
+                  <span
+                    className="px-3 py-1 rounded text-sm font-semibold"
+                    style={{
+                      backgroundColor: COLORS[selectedExecution.status] + '20',
+                      color: COLORS[selectedExecution.status]
+                    }}
+                  >
+                    {selectedExecution.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Started At</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    {new Date(selectedExecution.startedAt).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Completed At</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.completedAt ? new Date(selectedExecution.completedAt).toLocaleString() : 'In Progress'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Duration</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.completedAt && selectedExecution.startedAt
+                      ? `${((new Date(selectedExecution.completedAt) - new Date(selectedExecution.startedAt)) / 1000).toFixed(2)} seconds`
+                      : 'Running...'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Executed By</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.executedBy || 'System'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>AWX Job ID</p>
+                  <p className="font-mono text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.awxJobId || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)' }}>Namespace</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedExecution.automation?.namespace || selectedExecution.catalog?.namespace || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {selectedExecution.parameters && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold mb-2" style={{ color: 'var(--muted)' }}>Parameters</p>
+                  <pre
+                    className="p-4 rounded-lg overflow-x-auto text-xs"
+                    style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
+                  >
+                    {JSON.stringify(JSON.parse(selectedExecution.parameters || '{}'), null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedExecution.artifacts && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold mb-2" style={{ color: 'var(--muted)' }}>Results / Artifacts</p>
+                  <pre
+                    className="p-4 rounded-lg overflow-x-auto text-xs"
+                    style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
+                  >
+                    {JSON.stringify(JSON.parse(selectedExecution.artifacts || '{}'), null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedExecution.errorMessage && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold mb-2" style={{ color: COLORS.failed }}>
+                    <AlertTriangle className="inline h-4 w-4 mr-1" />
+                    Error Message
+                  </p>
+                  <div
+                    className="p-4 rounded-lg"
+                    style={{ backgroundColor: COLORS.failed + '10', border: `1px solid ${COLORS.failed}` }}
+                  >
+                    <p className="text-sm" style={{ color: 'var(--text)' }}>
+                      {selectedExecution.errorMessage}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

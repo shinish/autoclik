@@ -430,8 +430,12 @@ export default function CatalogExecutePage() {
                   <button
                     type="button"
                     onClick={() => setShowBodyEditor(!showBodyEditor)}
-                    className="text-xs px-2 py-1 rounded hover:bg-opacity-10"
-                    style={{ color: 'var(--primary)', backgroundColor: showBodyEditor ? 'var(--primary)' : 'transparent' }}
+                    className="text-xs px-3 py-1.5 rounded transition-colors"
+                    style={{
+                      color: showBodyEditor ? '#ffffff' : 'var(--primary)',
+                      backgroundColor: showBodyEditor ? 'var(--primary)' : 'transparent',
+                      border: showBodyEditor ? 'none' : '1px solid var(--primary)'
+                    }}
                   >
                     {showBodyEditor ? 'Hide Editor' : 'Show Editor'}
                   </button>
@@ -443,12 +447,15 @@ export default function CatalogExecutePage() {
                       value={customBody}
                       onChange={(e) => handleBodyChange(e.target.value)}
                       rows={12}
-                      className="w-full rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-offset-2"
                       style={{
-                        backgroundColor: 'var(--background)',
+                        backgroundColor: '#ffffff',
                         borderColor: bodyError ? '#ef4444' : 'var(--border)',
-                        color: 'var(--text)',
+                        color: '#000000',
                         border: '1px solid',
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: '200',
+                        fontSize: '14px',
                       }}
                       placeholder='{"key": "value"}'
                     />

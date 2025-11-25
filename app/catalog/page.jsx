@@ -172,17 +172,22 @@ export default function CatalogPage() {
 
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('Deleting catalog with ID:', catalog.id);
+
       const res = await fetch(`/api/catalog/${catalog.id}?performedBy=${currentUser.email || 'system'}`, {
         method: 'DELETE',
       });
 
+      console.log('Delete response status:', res.status);
+
       if (!res.ok) {
         const error = await res.json();
+        console.error('Delete error response:', error);
         throw new Error(error.error || 'Failed to delete catalog');
       }
 
       alert('Catalog deleted successfully');
-      fetchCatalogs();
+      fetchData(currentUser);
     } catch (error) {
       console.error('Error deleting catalog:', error);
       alert('Failed to delete catalog: ' + error.message);
