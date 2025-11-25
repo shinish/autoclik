@@ -4,7 +4,7 @@ import { launchJobTemplate, getJobStatus } from '@/lib/awx-api';
 import { logInfo, logError } from '@/lib/logger';
 
 // Default connectivity check job template ID (from AWX)
-const DEFAULT_CONNECTIVITY_TEMPLATE_ID = '1456';
+const DEFAULT_CONNECTIVITY_TEMPLATE_ID = '8';
 
 // Hardcoded instance group ID for connectivity checks
 const HARDCODED_INSTANCE_GROUP_ID = 3;
@@ -106,10 +106,26 @@ export async function POST(request) {
     try {
       const awxJob = await launchJobTemplate(jobTemplateId, awxBody);
 
+      // Find or create the Connectivity Check catalog entry
+      let connectivityCatalog = await prisma.catalog.findFirst({
+        where: { name: 'Connectivity Check' }
+      });
+
+      if (!connectivityCatalog) {
+        // Create a connectivity check catalog if it doesn't exist
+        connectivityCatalog = await prisma.catalog.create({
+          data: {
+            name: 'Connectivity Check',
+            description: 'Test network connectivity between nodes',
+            templateId: jobTemplateId,
+          }
+        });
+      }
+
       // Create execution record
       const execution = await prisma.catalogExecution.create({
         data: {
-          catalogId: 'connectivity-check', // Special ID for connectivity checks
+          catalogId: connectivityCatalog.id,
           status: 'running',
           awxJobId: String(awxJob.id),
           parameters: JSON.stringify({
@@ -166,9 +182,18 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
 
+    // Find the Connectivity Check catalog
+    const connectivityCatalog = await prisma.catalog.findFirst({
+      where: { name: 'Connectivity Check' }
+    });
+
+    if (!connectivityCatalog) {
+      return NextResponse.json([]);
+    }
+
     const executions = await prisma.catalogExecution.findMany({
       where: {
-        catalogId: 'connectivity-check',
+        catalogId: connectivityCatalog.id,
       },
       orderBy: { startedAt: 'desc' },
       take: limit,

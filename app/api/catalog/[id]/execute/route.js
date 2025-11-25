@@ -210,7 +210,17 @@ export async function POST(request, { params }) {
     }
 
     // Make request to AWX
-    const awxUrl = `${catalog.environment.baseUrl}/api/v2/job_templates/${catalog.templateId}/launch/`;
+    // Use baseUrl from environment settings - ensure it ends with /api/v2
+    let baseUrl = catalog.environment.baseUrl;
+    // Normalize: remove trailing slash if present
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    // If baseUrl doesn't include /api/v2, append it
+    if (!baseUrl.endsWith('/api/v2')) {
+      baseUrl = `${baseUrl}/api/v2`;
+    }
+    const awxUrl = `${baseUrl}/job_templates/${catalog.templateId}/launch/`;
 
     // Get AWX token from the selected environment
     const awxToken = catalog.environment.token;

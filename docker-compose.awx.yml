@@ -32,9 +32,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # AWX Web Server
+  # AWX Web Server (using older community maintained version)
   awx-web:
-    image: ansible/awx:23.3.1
+    image: ansible/awx:17.1.0
     container_name: awx-web
     restart: unless-stopped
     depends_on:
@@ -44,63 +44,30 @@ services:
         condition: service_healthy
     hostname: awx
     user: root
-    environment:
-      DATABASE_USER: awx
-      DATABASE_PASSWORD: awxpass
-      DATABASE_NAME: awx
-      DATABASE_PORT: 5432
-      DATABASE_HOST: postgres
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      AWX_ADMIN_USER: admin
-      AWX_ADMIN_PASSWORD: password
-      SECRET_KEY: awxsecret12345
     ports:
-      - "8080:8052"
+      - "8080:80"
     volumes:
       - awx-projects:/var/lib/awx/projects
-      - awx-data:/var/lib/awx
+      - ./awx-settings/credentials.py:/etc/tower/conf.d/credentials.py:ro
+      - ./awx-settings/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - awx-network
-    command: |
-      bash -c "
-        awx-manage migrate --noinput &&
-        awx-manage create_preload_data &&
-        awx-manage provision_instance --hostname=awx &&
-        awx-manage register_queue --queuename=tower --instance_percent=100 &&
-        supervisord -c /etc/supervisord.conf
-      "
 
   # AWX Task Runner
   awx-task:
-    image: ansible/awx:23.3.1
+    image: ansible/awx:17.1.0
     container_name: awx-task
     restart: unless-stopped
     depends_on:
       - awx-web
-      - postgres
-      - redis
+    hostname: awx-task
     user: root
-    environment:
-      DATABASE_USER: awx
-      DATABASE_PASSWORD: awxpass
-      DATABASE_NAME: awx
-      DATABASE_PORT: 5432
-      DATABASE_HOST: postgres
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      SECRET_KEY: awxsecret12345
     volumes:
       - awx-projects:/var/lib/awx/projects
-      - awx-data:/var/lib/awx
+      - ./awx-settings/credentials.py:/etc/tower/conf.d/credentials.py:ro
     networks:
       - awx-network
-    command: |
-      bash -c "
-        awx-manage provision_instance --hostname=awx-task &&
-        awx-manage register_queue --queuename=tower --instance_percent=100 &&
-        supervisord -c /etc/supervisord_task.conf
-      "
+    command: launch_awx_task.sh
 
 networks:
   awx-network:
@@ -109,4 +76,3 @@ networks:
 volumes:
   awx-postgres-data:
   awx-projects:
-  awx-data:

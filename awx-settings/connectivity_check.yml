@@ -1,0 +1,71 @@
+---
+- name: Connectivity Check
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    source_system: "{{ source_system | default([]) }}"
+    destn_ip: "{{ destn_ip | default([]) }}"
+    ports_input: "{{ ports_input | default('') }}"
+    connectivity_results: []
+
+  tasks:
+    - name: Display parameters
+      debug:
+        msg: |
+          Source System: {{ source_system }}
+          Destination IPs: {{ destn_ip }}
+          Ports: {{ ports_input }}
+
+    - name: Parse destination IPs
+      set_fact:
+        ip_list: "{{ destn_ip.split(';') | map('trim') | list if destn_ip is string else destn_ip }}"
+
+    - name: Parse ports
+      set_fact:
+        port_list: "{{ ports_input.split(',') | map('trim') | list if ports_input is string else ports_input }}"
+
+    - name: Display parsed values
+      debug:
+        msg: |
+          IP List: {{ ip_list }}
+          Port List: {{ port_list }}
+
+    - name: Test TCP port connectivity
+      wait_for:
+        host: "{{ item.0 }}"
+        port: "{{ item.1 | int }}"
+        timeout: 5
+        state: started
+      register: port_results
+      ignore_errors: yes
+      loop: "{{ ip_list | product(port_list) | list }}"
+      loop_control:
+        label: "{{ item.0 }}:{{ item.1 }}"
+
+    - name: Process each result
+      set_fact:
+        connectivity_results: "{{ connectivity_results + [{'destination': item.item.0, 'port': item.item.1, 'status': 'success' if (item.state is defined and item.state == 'started') else 'failed', 'responseTime': ((item.elapsed | default(0)) | string) + 's' if (item.state is defined and item.state == 'started') else '', 'error': item.msg | default('') if (item.failed | default(false)) else ''}] }}"
+      loop: "{{ port_results.results }}"
+      loop_control:
+        label: "{{ item.item.0 }}:{{ item.item.1 }}"
+
+    - name: Display results summary
+      debug:
+        msg: |
+          ====================================
+          CONNECTIVITY TEST RESULTS
+          ====================================
+          {% for result in connectivity_results %}
+          {{ result.destination }}:{{ result.port }} - {{ result.status | upper }}{% if result.responseTime %} ({{ result.responseTime }}){% endif %}{% if result.error %} - {{ result.error }}{% endif %}
+          {% endfor %}
+          ====================================
+          Total: {{ connectivity_results | length }}
+          Success: {{ connectivity_results | selectattr('status', 'equalto', 'success') | list | length }}
+          Failed: {{ connectivity_results | selectattr('status', 'equalto', 'failed') | list | length }}
+          ====================================
+
+    - name: Set artifacts with results
+      set_stats:
+        data:
+          connectivity_results: "{{ connectivity_results }}"
